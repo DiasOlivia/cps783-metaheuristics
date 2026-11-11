@@ -6,11 +6,14 @@ Repositório de estudo sobre **heurísticas e metaheurísticas** para problemas 
 
 | Pasta | Algoritmo | Problema |
 |---|---|---|
+| [`metaheuristics/`](metaheuristics/README.md) | Conceitos: representação e heurística × metaheurística | — |
 | [`metaheuristics/guloso/`](metaheuristics/guloso/README.md) | Algoritmo guloso | — |
 | [`metaheuristics/guloso/kruskal/`](metaheuristics/guloso/kruskal/README.md) | Kruskal | Árvore Geradora Mínima |
 | [`metaheuristics/guloso/mochila/`](metaheuristics/guloso/mochila/README.md) | Heurísticas gulosas | Mochila 0-1 |
 | [`metaheuristics/guloso/caixeiro_viajante/`](metaheuristics/guloso/caixeiro_viajante/README.md) | Heurística gulosa | Caixeiro Viajante |
 | [`metaheuristics/simulated_annealing/`](metaheuristics/simulated_annealing/README.md) | Simulated Annealing | Mochila 0-1 |
+| [`metaheuristics/iterated_local_search/`](metaheuristics/iterated_local_search/README.md) | Iterated Local Search | Mochila 0-1 |
+| [`metaheuristics/variable_neighborhood_search/`](metaheuristics/variable_neighborhood_search/README.md) | Variable Neighborhood Search | Mochila 0-1 |
 
 ## Instalação
 
@@ -42,6 +45,7 @@ python -m metaheuristics.simulated_annealing.plot
 
 ```text
 metaheuristics/
+├── README.md          conceitos: representação, heurística × metaheurística
 └── <algoritmo>/
     ├── __init__.py    implementação
     ├── plot.py        gráficos
