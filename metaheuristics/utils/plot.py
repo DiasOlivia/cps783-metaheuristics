@@ -43,6 +43,16 @@ ESTILO = {
 }
 
 CHAVES_COMUNS = ("valor_candidato", "valor_atual", "melhor_valor", "avaliacoes")
+PREFIXO_PESO = "peso "
+CORES_OPERADORES = (
+    "#1f6fb4",
+    "#2a9d55",
+    "#d1495b",
+    "#7b3fa0",
+    "#c9a227",
+    "#17a2b8",
+    "#8c564b",
+)
 
 
 def finalizar(
@@ -99,7 +109,9 @@ def plotar_historico(
     """Plot candidate, current and best values of one run.
 
     A lower panel shows the extra keys of the history (such as ``temperatura`` in
-    the SA or ``k`` in the VNS). Saved files go to ``plots/utils/``.
+    the SA or ``k`` in the VNS). Keys starting with ``'peso '`` (the operator
+    weights of the ALNS) get one line each on the left axis, and the other extras
+    move to the right axis. Saved files go to ``plots/utils/``.
 
     Parameters
     ----------
@@ -124,14 +136,16 @@ def plotar_historico(
     iteracoes = sorted(historico["valor_atual"])
     xs = _eixo_x(historico, eixo_x)
     extras = [chave for chave in historico if chave not in CHAVES_COMUNS]
+    pesos = [chave for chave in extras if chave.startswith(PREFIXO_PESO)]
+    outros = [chave for chave in extras if chave not in pesos]
     with plt.rc_context(ESTILO):
         if extras:
             fig, (ax, ax_extra) = plt.subplots(
                 2,
                 1,
-                figsize=(11, 7),
+                figsize=(11, 8 if pesos else 7),
                 sharex=True,
-                height_ratios=(3, 1),
+                height_ratios=(3, 1.6 if pesos else 1),
                 layout="constrained",
             )
         else:
@@ -170,17 +184,37 @@ def plotar_historico(
         ax.set_title(titulo, loc="left", fontsize=13)
         ax.legend(loc="lower right")
         if extras:
-            for chave in extras:
+            x_da_iteracao = dict(zip(iteracoes, xs))
+
+            def degraus(eixo, chave: str, cor: str, rotulo: str) -> None:
                 pares = sorted(historico[chave].items())
-                ax_extra.step(
-                    [xs[iteracoes.index(t)] for t, _ in pares],
+                eixo.step(
+                    [x_da_iteracao[t] for t, _ in pares],
                     [v for _, v in pares],
                     where="post",
-                    color=COR_EXTRA,
+                    color=cor,
                     linewidth=1.2,
-                    label=chave,
+                    label=rotulo,
                 )
-            ax_extra.set_ylabel(", ".join(extras))
+
+            eixo_outros = ax_extra
+            if pesos:
+                for i, chave in enumerate(pesos):
+                    cor = CORES_OPERADORES[i % len(CORES_OPERADORES)]
+                    degraus(ax_extra, chave, cor, chave.removeprefix(PREFIXO_PESO))
+                ax_extra.set_ylabel("peso do operador")
+                ax_extra.legend(loc="upper right", ncol=3, fontsize=8)
+                if outros:
+                    # Os pesos e a temperatura têm escalas diferentes: um eixo cada
+                    eixo_outros = ax_extra.twinx()
+                    eixo_outros.grid(False)
+                    eixo_outros.spines["right"].set_visible(True)
+                    eixo_outros.tick_params(axis="y", labelcolor=COR_EXTRA)
+                    eixo_outros.yaxis.label.set_color(COR_EXTRA)
+            for chave in outros:
+                degraus(eixo_outros, chave, COR_EXTRA, chave)
+            if outros:
+                eixo_outros.set_ylabel(", ".join(outros))
             ax_extra.set_xlabel(
                 "avaliações" if eixo_x == "avaliacoes" else "iteração"
             )

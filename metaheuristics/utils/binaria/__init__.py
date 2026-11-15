@@ -4,8 +4,13 @@ from metaheuristics.utils.binaria.busca_local import busca_local_melhor_melhora
 from metaheuristics.utils.binaria.busca_local import busca_local_primeira_melhora
 from metaheuristics.utils.binaria.construtiva import construtiva_aleatoria
 from metaheuristics.utils.binaria.construtiva import construtiva_gulosa
+from metaheuristics.utils.binaria.insercao import insercao_aleatoria
+from metaheuristics.utils.binaria.insercao import insercao_gulosa
 from metaheuristics.utils.binaria.movimento import gerar_vizinho
 from metaheuristics.utils.binaria.perturbacao import perturbar
+from metaheuristics.utils.binaria.remocao import remocao_aleatoria
+from metaheuristics.utils.binaria.remocao import remocao_pior
+from metaheuristics.utils.binaria.remocao import remocao_shaw
 
 __all__ = [
     "avaliar",
@@ -15,5 +20,10 @@ __all__ = [
     "construtiva_aleatoria",
     "construtiva_gulosa",
     "gerar_vizinho",
+    "insercao_aleatoria",
+    "insercao_gulosa",
     "perturbar",
+    "remocao_aleatoria",
+    "remocao_pior",
+    "remocao_shaw",
 ]

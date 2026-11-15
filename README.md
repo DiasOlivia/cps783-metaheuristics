@@ -14,7 +14,8 @@ Repositório de estudo sobre **heurísticas e metaheurísticas** para problemas 
 | [`metaheuristics/simulated_annealing/`](metaheuristics/simulated_annealing/README.md) | Simulated Annealing | Mochila 0-1 |
 | [`metaheuristics/iterated_local_search/`](metaheuristics/iterated_local_search/README.md) | Iterated Local Search | Mochila 0-1 |
 | [`metaheuristics/variable_neighborhood_search/`](metaheuristics/variable_neighborhood_search/README.md) | Variable Neighborhood Search | Mochila 0-1 |
-| [`metaheuristics/utils/`](metaheuristics/utils/README.md) | Peças trocáveis do SA, ILS e VNS, gráficos e depurador visual | Mochila 0-1 |
+| [`metaheuristics/adaptive_large_neighborhood_search/`](metaheuristics/adaptive_large_neighborhood_search/README.md) | Adaptive Large Neighbourhood Search | Mochila 0-1 |
+| [`metaheuristics/utils/`](metaheuristics/utils/README.md) | Peças trocáveis do SA, ILS, VNS e ALNS, gráficos e depurador visual | Mochila 0-1 |
 | [`metaheuristics/laboratorio.ipynb`](metaheuristics/laboratorio.ipynb) | Notebook para montar e comparar combinações | Mochila 0-1 |
 
 ## Instalação

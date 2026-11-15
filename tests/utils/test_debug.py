@@ -2,6 +2,9 @@ import random
 
 import pytest
 
+from metaheuristics.adaptive_large_neighborhood_search import (
+    adaptive_large_neighborhood_search_mochila,
+)
 from metaheuristics.iterated_local_search import iterated_local_search_mochila
 from metaheuristics.simulated_annealing import simulated_annealing_mochila
 from metaheuristics.utils import ordem
@@ -75,6 +78,25 @@ def test_depurador__representacao_por_ordem(tmp_path):
         debug=debug,
     )
     assert _iteracoes_salvas(tmp_path) == [0, 10, 20, 30]
+
+
+def test_depurador__alns_desenha_remocao_e_insercao(tmp_path):
+    itens, capacidade = _instancia()
+    random.seed(2)
+    sem_debug = adaptive_large_neighborhood_search_mochila(
+        itens, capacidade, 50, 1, 0.8
+    )
+    debug = Depurador(
+        itens, capacidade, save=True, a_cada=5, limite=12, pasta=tmp_path
+    )
+    random.seed(2)
+    com_debug = adaptive_large_neighborhood_search_mochila(
+        itens, capacidade, 50, 1, 0.8, debug=debug
+    )
+    nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
+    assert sem_debug == com_debug
+    assert any("remocao" in nome for nome in nomes)
+    assert any("insercao" in nome for nome in nomes)
 
 
 def test_depurador__exige_show_ou_save():

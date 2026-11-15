@@ -2,7 +2,7 @@
 
 > Material de estudo — **CPS783: Metaheurísticas em Otimização Combinatória (2026/3)**.
 
-Esta pasta separa o SA, o ILS e o VNS em **peças trocáveis**. Os três algoritmos viraram esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pelo de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
+Esta pasta separa o SA, o ILS, o VNS e a ALNS em **peças trocáveis**. Os quatro algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
 
 Para experimentar, use o [notebook do laboratório](../laboratorio.ipynb). Os conceitos por trás (representação, heurística × metaheurística) estão no [README de conceitos](../README.md).
 
@@ -21,13 +21,17 @@ utils/
 │   ├── construtiva.py  construtiva_aleatoria, construtiva_gulosa
 │   ├── movimento.py    gerar_vizinho
 │   ├── perturbacao.py  perturbar
-│   └── busca_local.py  busca_local_melhor_melhora, busca_local_primeira_melhora
+│   ├── busca_local.py  busca_local_melhor_melhora, busca_local_primeira_melhora
+│   ├── remocao.py      remocao_aleatoria, remocao_pior, remocao_shaw
+│   └── insercao.py     insercao_aleatoria, insercao_gulosa
 └── ordem/              peças da representação por ordem
     ├── avaliacao.py    avaliar, decodificar
     ├── construtiva.py  construtiva_aleatoria, construtiva_gulosa
     ├── movimento.py    gerar_vizinho
     ├── perturbacao.py  perturbar
-    └── busca_local.py  busca_local_primeira_melhora
+    ├── busca_local.py  busca_local_primeira_melhora
+    ├── remocao.py      remocao_aleatoria, remocao_pior, remocao_shaw
+    └── insercao.py     insercao_aleatoria, insercao_gulosa, insercao_arrependimento
 ```
 
 O que fica na raiz de `utils/` vale para as duas representações. O que fica em `binaria/` e `ordem/` só funciona com soluções daquela representação.
@@ -51,7 +55,7 @@ A mesma solução (quais itens estão na mochila) pode ser escrita de dois jeito
 | Viabilidade | pode passar da capacidade: `binaria.calcular_valor_peso` devolve valor 0 e a perturbação repara | sempre viável |
 | Redundância | cada solução é um vetor só | `[3, 0, 6, 5, 4, 2, 1]` dá a mesma solução |
 
-**Regra:** numa execução, todas as peças de `binaria/` ou de `ordem/` (avaliar, construtiva, movimento, perturbação, busca local) precisam ser da mesma representação. A aceitação, o histórico, os gráficos e o depurador servem para as duas.
+**Regra:** numa execução, todas as peças de `binaria/` ou de `ordem/` (avaliar, construtiva, movimento, perturbação, busca local, remoção, inserção) precisam ser da mesma representação. A aceitação, o histórico, os gráficos e o depurador servem para as duas.
 
 ## 3. Catálogo de peças
 
@@ -64,24 +68,30 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 | movimento | `(solucao, itens, capacidade, k, debug=None) -> solucao` | `binaria.gerar_vizinho`: k trocas viáveis de 1 bit | `ordem.gerar_vizinho`: k trocas de duas posições |
 | perturbação | o mesmo do movimento | `binaria.perturbar`: k bits distintos + reparo | `ordem.perturbar`: embaralha os itens de k posições |
 | busca local | `(solucao, itens, capacidade, debug=None) -> (solucao, avaliacoes)` | `binaria.busca_local_melhor_melhora`; `binaria.busca_local_primeira_melhora` | `ordem.busca_local_primeira_melhora` |
+| remoção (ALNS) | o mesmo do movimento | `binaria.remocao_aleatoria`, `binaria.remocao_pior`, `binaria.remocao_shaw`: tiram k itens de dentro | `ordem.remocao_aleatoria`, `ordem.remocao_pior`, `ordem.remocao_shaw`: tiram da ordem os mesmos itens |
+| inserção (ALNS) | `(solucao, itens, capacidade, debug=None) -> solucao` | `binaria.insercao_aleatoria`; `binaria.insercao_gulosa` (maior ganho de valor) | `ordem.insercao_aleatoria`; `ordem.insercao_gulosa`; `ordem.insercao_arrependimento` |
 | aceitação | `(delta, iteracao) -> bool` | `aceita_melhora`; `metropolis(temperaturas(T0, Tmin, α), iteracoes_por_temperatura)` | (as mesmas) |
 
 - As duas buscas locais binárias percorrem os mesmos movimentos (1-flip e troca 1-por-1), na mesma ordem. A de **melhor melhora** examina todos e aplica o melhor; a de **primeira melhora** aplica o primeiro que melhora (slide 28). Elas podem parar em ótimos locais diferentes.
 - O movimento e a perturbação têm o mesmo encaixe, então também são trocáveis: dá para passar `binaria.gerar_vizinho` como perturbação do ILS ou `binaria.perturbar` como movimento do SA.
+- A remoção também tem o encaixe do movimento, então a perturbação e o movimento entram na lista de remoções da ALNS. A inserção é o único encaixe sem equivalente: completa uma solução parcial sem desfazer o que já está nela.
+- A inserção por arrependimento só existe na ordem: ela compara a melhor posição de um item com a segunda melhor, e na binária um item de fora só tem um jeito de entrar (detalhes no [README da ALNS](../adaptive_large_neighborhood_search/README.md)).
 - A `metropolis` guarda a última decisão em `aceitar.ultimo` (temperatura, chance e sorteio), que o depurador mostra.
 - **Custo da busca local por ordem:** cada vizinha é decodificada do zero, então uma passada custa O(n³). Medido: 0,04 s com 50 itens e 0,6 s com 100. Com ILS ou VNS de 250 iterações e 100 itens, isso passa de 2 minutos por execução. Prefira até ~50 itens.
+- **Custo da inserção por ordem:** a gulosa e o arrependimento testam cada item que falta em cada posição, `O(q² n²)` por iteração. Medido no pior q: 7 ms com 50 itens e 100 ms com 100.
 
 ## 4. Os esquemas e onde as peças entram
 
-Os três seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. O melhor resultado é guardado à parte do atual.
+Todos seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. O melhor resultado é guardado à parte do atual.
 
 | | construtiva | movimento / perturbação | busca local | aceitação | regra própria |
 |---|---|---|---|---|---|
 | SA | `binaria.construtiva_aleatoria` | `movimento=binaria.gerar_vizinho` (k = `intensidade_movimento`) | `None` | `None` = Metropolis com as temperaturas | número de iterações = níveis de temperatura × iterações por nível |
 | ILS | `binaria.construtiva_aleatoria` | `perturbacao=binaria.perturbar` (k = `intensidade_perturbacao`) | `binaria.busca_local_melhor_melhora`, também na solução inicial | `aceita_melhora` | — |
 | VNS | `binaria.construtiva_aleatoria` | `perturbacao=binaria.perturbar` (k corrente) | `binaria.busca_local_melhor_melhora` | `aceita_melhora` | aceito: k = 1; senão k + 1, voltando a 1 depois de `k_max` |
+| ALNS | `binaria.construtiva_aleatoria` | `remocoes=` (aleatória, pior, Shaw) e `insercoes=` (aleatória, gulosa), sorteadas por roleta (k = q sorteado) | `None` | `None` = Metropolis, uma iteração por temperatura | piora só se a solução for nova; pesos dos operadores atualizados a cada segmento |
 
-Os valores da tabela são os padrões: sem passar nenhuma peça, cada algoritmo faz exatamente o que fazia antes, com os mesmos resultados para a mesma semente. Todos recebem também `avaliar` (padrão `binaria.avaliar`) e `debug`.
+Os valores da tabela são os padrões: sem passar nenhuma peça, SA, ILS e VNS fazem exatamente o que faziam antes, com os mesmos resultados para a mesma semente. Todos recebem também `avaliar` (padrão `binaria.avaliar`) e `debug`.
 
 A assinatura do SA, como exemplo:
 
@@ -135,7 +145,7 @@ Todo esquema devolve `(melhor_solucao, historico)`. O histórico é um dicionár
 | `valor_atual` | valor da solução corrente depois da aceitação |
 | `melhor_valor` | melhor valor encontrado até a iteração |
 | `avaliacoes` | soluções avaliadas, acumuladas: cada candidato conta 1, e a busca local soma as vizinhas que examinou |
-| `temperatura` (SA), `k` (VNS) | extras de cada esquema |
+| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS) | extras de cada esquema |
 
 **Compare esquemas pelas avaliações, não pelas iterações.** Uma iteração do SA avalia 1 vizinho; uma do ILS ou do VNS roda uma busca local inteira, que pode avaliar centenas.
 
@@ -152,7 +162,7 @@ Sem a opção, os sorteios são os mesmos de antes: a mesma semente gera os mesm
 
 | Função | O que faz |
 |---|---|
-| `plotar_historico(historico, valor_otimo, eixo_x, show, save)` | candidato, atual, melhor e ótimo de uma execução, com um painel extra para `temperatura` ou `k` |
+| `plotar_historico(historico, valor_otimo, eixo_x, show, save)` | candidato, atual, melhor e ótimo de uma execução, com um painel extra para `temperatura` ou `k`; na ALNS, o painel mostra os pesos dos operadores (uma linha cada) e a temperatura no eixo da direita |
 | `plotar_comparacao({rótulo: histórico}, valor_otimo, eixo_x, show, save)` | o melhor valor de várias combinações, sobrepostos |
 | `rodar_sementes(esquema, itens, capacidade, sementes, **parametros)` | roda um esquema uma vez por semente e mede o tempo |
 | `resumir(execucoes, valor_otimo)` | gap médio, melhor e pior, ótimos atingidos, avaliações até o melhor e tempo |
@@ -183,7 +193,7 @@ Cada figura tem três painéis:
 
 ## 9. Como montar uma mistura
 
-1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila` ou `variable_neighborhood_search_mochila`.
+1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila` ou `adaptive_large_neighborhood_search_mochila`.
 2. Troque as peças passando-as como parâmetro, todas da mesma representação.
 3. Rode em várias sementes com `rodar_sementes`, resuma com `resumir` e compare com a linha de base em `tabela` e `plotar_comparacao`.
 

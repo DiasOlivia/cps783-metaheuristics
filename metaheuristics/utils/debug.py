@@ -222,7 +222,8 @@ class Depurador:
         extras : dict of {str: float}, optional
             Values shown in the title and on the right axis, e.g. the temperature.
         info : dict, optional
-            Last decision of the acceptance rule (probability and draw).
+            Last decision of the acceptance rule (probability and draw); an
+            optional ``nota`` is added to the title.
         """
         extras = extras or {}
         valor_anterior = self.atuais[-1] if self.atuais else valor_atual
@@ -260,6 +261,8 @@ class Depurador:
                     f" · chance {_porcentagem(info['chance'])}"
                     f" · sorteio {_br(info['sorteio'])}"
                 )
+            if info and info.get("nota"):
+                texto += f" · {info['nota']}"
             texto += f" → {decisao}"
             if melhor_antes is not None and melhor_valor > melhor_antes:
                 texto += f" · novo melhor ({melhor_valor})"
