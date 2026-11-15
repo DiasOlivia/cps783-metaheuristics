@@ -1,4 +1,5 @@
 from metaheuristics.utils.binaria.avaliacao import avaliar
+from metaheuristics.utils.binaria.avaliacao import avaliar_penalizada
 from metaheuristics.utils.binaria.avaliacao import calcular_valor_peso
 from metaheuristics.utils.binaria.busca_local import busca_local_melhor_melhora
 from metaheuristics.utils.binaria.busca_local import busca_local_primeira_melhora
@@ -11,9 +12,12 @@ from metaheuristics.utils.binaria.perturbacao import perturbar
 from metaheuristics.utils.binaria.remocao import remocao_aleatoria
 from metaheuristics.utils.binaria.remocao import remocao_pior
 from metaheuristics.utils.binaria.remocao import remocao_shaw
+from metaheuristics.utils.binaria.vizinhanca import vizinhanca_flip
+from metaheuristics.utils.binaria.vizinhanca import vizinhanca_flip_troca
 
 __all__ = [
     "avaliar",
+    "avaliar_penalizada",
     "busca_local_melhor_melhora",
     "busca_local_primeira_melhora",
     "calcular_valor_peso",
@@ -26,4 +30,6 @@ __all__ = [
     "remocao_aleatoria",
     "remocao_pior",
     "remocao_shaw",
+    "vizinhanca_flip",
+    "vizinhanca_flip_troca",
 ]

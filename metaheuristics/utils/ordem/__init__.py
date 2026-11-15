@@ -11,6 +11,7 @@ from metaheuristics.utils.ordem.perturbacao import perturbar
 from metaheuristics.utils.ordem.remocao import remocao_aleatoria
 from metaheuristics.utils.ordem.remocao import remocao_pior
 from metaheuristics.utils.ordem.remocao import remocao_shaw
+from metaheuristics.utils.ordem.vizinhanca import vizinhanca_troca
 
 __all__ = [
     "avaliar",
@@ -26,4 +27,5 @@ __all__ = [
     "remocao_aleatoria",
     "remocao_pior",
     "remocao_shaw",
+    "vizinhanca_troca",
 ]

@@ -49,3 +49,34 @@ def avaliar(solucao: list[int], itens: list[Item], capacidade: int) -> int:
         Solution value.
     """
     return calcular_valor_peso(solucao, itens, capacidade)[0]
+
+
+def avaliar_penalizada(
+    solucao: list[int], itens: list[Item], capacidade: int
+) -> int:
+    """Return the value minus a penalty proportional to the excess weight.
+
+    ``f(s) = valor - α * max(0, peso - capacidade)``, with ``α`` equal to the sum
+    of all values. With integer weights, an overweight solution scores at most 0,
+    so a feasible solution is never beaten by an infeasible one.
+
+    Parameters
+    ----------
+    solucao : list of int
+        Binary selection vector, feasible or not.
+    itens : list of Item
+        Items of the instance.
+    capacidade : int
+        Knapsack capacity.
+
+    Returns
+    -------
+    int
+        Penalized value; equal to the value when the solution fits.
+    """
+    if len(solucao) != len(itens):
+        raise ValueError("Solução e itens devem ter o mesmo tamanho.")
+    valor = sum(item.valor for item, bit in zip(itens, solucao) if bit)
+    peso = sum(item.peso for item, bit in zip(itens, solucao) if bit)
+    alfa = sum(item.valor for item in itens)
+    return valor - alfa * max(0, peso - capacidade)

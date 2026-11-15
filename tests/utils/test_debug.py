@@ -7,8 +7,10 @@ from metaheuristics.adaptive_large_neighborhood_search import (
 )
 from metaheuristics.iterated_local_search import iterated_local_search_mochila
 from metaheuristics.simulated_annealing import simulated_annealing_mochila
+from metaheuristics.tabu_search import tabu_search_mochila
 from metaheuristics.utils import ordem
 from metaheuristics.utils.debug import Depurador
+from metaheuristics.utils.instancia import Item
 from metaheuristics.utils.instancia import gerar_instancia_aleatoria
 
 
@@ -97,6 +99,21 @@ def test_depurador__alns_desenha_remocao_e_insercao(tmp_path):
     assert sem_debug == com_debug
     assert any("remocao" in nome for nome in nomes)
     assert any("insercao" in nome for nome in nomes)
+
+
+def test_depurador__busca_tabu_desenha_a_vizinhanca(tmp_path):
+    itens = [Item(4, 2), Item(5, 2), Item(7, 3), Item(9, 4), Item(6, 4)]
+    parametros = {
+        "tamanho_tabu": 1,
+        "max_sem_melhora": 1,
+        "construtiva": lambda *_: [0, 1, 0, 1, 0],
+    }
+    sem_debug = tabu_search_mochila(itens, 23, **parametros)
+    debug = Depurador(itens, 23, save=True, pasta=tmp_path)
+    com_debug = tabu_search_mochila(itens, 23, debug=debug, **parametros)
+    nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
+    assert sem_debug == com_debug
+    assert sum("vizinhanca" in nome for nome in nomes) == 5
 
 
 def test_depurador__exige_show_ou_save():

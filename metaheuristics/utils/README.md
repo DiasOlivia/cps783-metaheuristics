@@ -2,7 +2,7 @@
 
 > Material de estudo — **CPS783: Metaheurísticas em Otimização Combinatória (2026/3)**.
 
-Esta pasta separa o SA, o ILS, o VNS e a ALNS em **peças trocáveis**. Os quatro algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
+Esta pasta separa o SA, o ILS, o VNS, a ALNS e a Busca Tabu em **peças trocáveis**. Os cinco algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
 
 Para experimentar, use o [notebook do laboratório](../laboratorio.ipynb). Os conceitos por trás (representação, heurística × metaheurística) estão no [README de conceitos](../README.md).
 
@@ -17,13 +17,14 @@ utils/
 ├── plot.py             plotar_historico, plotar_comparacao
 ├── debug.py            Depurador
 ├── binaria/            peças da representação binária
-│   ├── avaliacao.py    avaliar, calcular_valor_peso
+│   ├── avaliacao.py    avaliar, avaliar_penalizada, calcular_valor_peso
 │   ├── construtiva.py  construtiva_aleatoria, construtiva_gulosa
 │   ├── movimento.py    gerar_vizinho
 │   ├── perturbacao.py  perturbar
 │   ├── busca_local.py  busca_local_melhor_melhora, busca_local_primeira_melhora
 │   ├── remocao.py      remocao_aleatoria, remocao_pior, remocao_shaw
-│   └── insercao.py     insercao_aleatoria, insercao_gulosa
+│   ├── insercao.py     insercao_aleatoria, insercao_gulosa
+│   └── vizinhanca.py   vizinhanca_flip, vizinhanca_flip_troca
 └── ordem/              peças da representação por ordem
     ├── avaliacao.py    avaliar, decodificar
     ├── construtiva.py  construtiva_aleatoria, construtiva_gulosa
@@ -31,7 +32,8 @@ utils/
     ├── perturbacao.py  perturbar
     ├── busca_local.py  busca_local_primeira_melhora
     ├── remocao.py      remocao_aleatoria, remocao_pior, remocao_shaw
-    └── insercao.py     insercao_aleatoria, insercao_gulosa, insercao_arrependimento
+    ├── insercao.py     insercao_aleatoria, insercao_gulosa, insercao_arrependimento
+    └── vizinhanca.py   vizinhanca_troca
 ```
 
 O que fica na raiz de `utils/` vale para as duas representações. O que fica em `binaria/` e `ordem/` só funciona com soluções daquela representação.
@@ -63,26 +65,29 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 
 | Encaixe | Assinatura | Binária | Por ordem |
 |---|---|---|---|
-| avaliar | `(solucao, itens, capacidade) -> valor` | `binaria.avaliar` | `ordem.avaliar` |
+| avaliar | `(solucao, itens, capacidade) -> valor` | `binaria.avaliar` (0 se não cabe); `binaria.avaliar_penalizada` (valor − α·excesso, α = soma dos valores) | `ordem.avaliar` |
 | construtiva | `(itens, capacidade) -> solucao` | `binaria.construtiva_aleatoria`; `binaria.construtiva_gulosa` (densidade valor/peso) | `ordem.construtiva_aleatoria`; `ordem.construtiva_gulosa` (densidade) |
 | movimento | `(solucao, itens, capacidade, k, debug=None) -> solucao` | `binaria.gerar_vizinho`: k trocas viáveis de 1 bit | `ordem.gerar_vizinho`: k trocas de duas posições |
 | perturbação | o mesmo do movimento | `binaria.perturbar`: k bits distintos + reparo | `ordem.perturbar`: embaralha os itens de k posições |
 | busca local | `(solucao, itens, capacidade, debug=None) -> (solucao, avaliacoes)` | `binaria.busca_local_melhor_melhora`; `binaria.busca_local_primeira_melhora` | `ordem.busca_local_primeira_melhora` |
 | remoção (ALNS) | o mesmo do movimento | `binaria.remocao_aleatoria`, `binaria.remocao_pior`, `binaria.remocao_shaw`: tiram k itens de dentro | `ordem.remocao_aleatoria`, `ordem.remocao_pior`, `ordem.remocao_shaw`: tiram da ordem os mesmos itens |
 | inserção (ALNS) | `(solucao, itens, capacidade, debug=None) -> solucao` | `binaria.insercao_aleatoria`; `binaria.insercao_gulosa` (maior ganho de valor) | `ordem.insercao_aleatoria`; `ordem.insercao_gulosa`; `ordem.insercao_arrependimento` |
+| vizinhança (Busca Tabu) | `(solucao, itens, capacidade) -> [(rotulo, itens_alterados, vizinha)]` | `binaria.vizinhanca_flip` (inverte um bit); `binaria.vizinhanca_flip_troca` (+ troca 1-por-1) | `ordem.vizinhanca_troca` (troca duas posições) |
 | aceitação | `(delta, iteracao) -> bool` | `aceita_melhora`; `metropolis(temperaturas(T0, Tmin, α), iteracoes_por_temperatura)` | (as mesmas) |
 
 - As duas buscas locais binárias percorrem os mesmos movimentos (1-flip e troca 1-por-1), na mesma ordem. A de **melhor melhora** examina todos e aplica o melhor; a de **primeira melhora** aplica o primeiro que melhora (slide 28). Elas podem parar em ótimos locais diferentes.
 - O movimento e a perturbação têm o mesmo encaixe, então também são trocáveis: dá para passar `binaria.gerar_vizinho` como perturbação do ILS ou `binaria.perturbar` como movimento do SA.
 - A remoção também tem o encaixe do movimento, então a perturbação e o movimento entram na lista de remoções da ALNS. A inserção é o único encaixe sem equivalente: completa uma solução parcial sem desfazer o que já está nela.
 - A inserção por arrependimento só existe na ordem: ela compara a melhor posição de um item com a segunda melhor, e na binária um item de fora só tem um jeito de entrar (detalhes no [README da ALNS](../adaptive_large_neighborhood_search/README.md)).
+- A vizinhança lista **todas** as vizinhas, inclusive as que não cabem, com os itens que cada movimento altera: são eles que viram tabu. A `binaria.vizinhanca_flip_troca` tem os mesmos movimentos das buscas locais binárias, na mesma ordem.
+- Com a `binaria.avaliar_penalizada`, uma solução que não cabe vale no máximo 0, então nunca supera uma viável. Ela encaixa em qualquer esquema.
 - A `metropolis` guarda a última decisão em `aceitar.ultimo` (temperatura, chance e sorteio), que o depurador mostra.
 - **Custo da busca local por ordem:** cada vizinha é decodificada do zero, então uma passada custa O(n³). Medido: 0,04 s com 50 itens e 0,6 s com 100. Com ILS ou VNS de 250 iterações e 100 itens, isso passa de 2 minutos por execução. Prefira até ~50 itens.
 - **Custo da inserção por ordem:** a gulosa e o arrependimento testam cada item que falta em cada posição, `O(q² n²)` por iteração. Medido no pior q: 7 ms com 50 itens e 100 ms com 100.
 
 ## 4. Os esquemas e onde as peças entram
 
-Todos seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. O melhor resultado é guardado à parte do atual.
+SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. A Busca Tabu é, ela mesma, uma busca local: não sorteia vizinhas, examina a vizinhança inteira e vai para a melhor vizinha admissível, mesmo que piore. O melhor resultado é guardado à parte do atual.
 
 | | construtiva | movimento / perturbação | busca local | aceitação | regra própria |
 |---|---|---|---|---|---|
@@ -90,8 +95,9 @@ Todos seguem a mesma forma: **construtiva → [busca local] → laço (movimento
 | ILS | `binaria.construtiva_aleatoria` | `perturbacao=binaria.perturbar` (k = `intensidade_perturbacao`) | `binaria.busca_local_melhor_melhora`, também na solução inicial | `aceita_melhora` | — |
 | VNS | `binaria.construtiva_aleatoria` | `perturbacao=binaria.perturbar` (k corrente) | `binaria.busca_local_melhor_melhora` | `aceita_melhora` | aceito: k = 1; senão k + 1, voltando a 1 depois de `k_max` |
 | ALNS | `binaria.construtiva_aleatoria` | `remocoes=` (aleatória, pior, Shaw) e `insercoes=` (aleatória, gulosa), sorteadas por roleta (k = q sorteado) | `None` | `None` = Metropolis, uma iteração por temperatura | piora só se a solução for nova; pesos dos operadores atualizados a cada segmento |
+| BT | `binaria.construtiva_aleatoria` | `vizinhanca=binaria.vizinhanca_flip`, examinada inteira | — | vai sempre para a melhor vizinha admissível; `avaliar=binaria.avaliar_penalizada` | lista tabu (vetor de prazo), aspiração por objetivo e por default; para após `max_sem_melhora` iterações sem melhora |
 
-Os valores da tabela são os padrões: sem passar nenhuma peça, SA, ILS e VNS fazem exatamente o que faziam antes, com os mesmos resultados para a mesma semente. Todos recebem também `avaliar` (padrão `binaria.avaliar`) e `debug`.
+Os valores da tabela são os padrões: sem passar nenhuma peça, SA, ILS e VNS fazem exatamente o que faziam antes, com os mesmos resultados para a mesma semente. Todos recebem também `avaliar` (padrão `binaria.avaliar`; na BT, `binaria.avaliar_penalizada`) e `debug`.
 
 A assinatura do SA, como exemplo:
 
@@ -145,7 +151,7 @@ Todo esquema devolve `(melhor_solucao, historico)`. O histórico é um dicionár
 | `valor_atual` | valor da solução corrente depois da aceitação |
 | `melhor_valor` | melhor valor encontrado até a iteração |
 | `avaliacoes` | soluções avaliadas, acumuladas: cada candidato conta 1, e a busca local soma as vizinhas que examinou |
-| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS) | extras de cada esquema |
+| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS), `tamanho_tabu` (BT) | extras de cada esquema |
 
 **Compare esquemas pelas avaliações, não pelas iterações.** Uma iteração do SA avalia 1 vizinho; uma do ILS ou do VNS roda uma busca local inteira, que pode avaliar centenas.
 
@@ -193,7 +199,7 @@ Cada figura tem três painéis:
 
 ## 9. Como montar uma mistura
 
-1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila` ou `adaptive_large_neighborhood_search_mochila`.
+1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila`, `adaptive_large_neighborhood_search_mochila` ou `tabu_search_mochila`.
 2. Troque as peças passando-as como parâmetro, todas da mesma representação.
 3. Rode em várias sementes com `rodar_sementes`, resuma com `resumir` e compare com a linha de base em `tabela` e `plotar_comparacao`.
 
@@ -201,8 +207,8 @@ A última seção do [notebook](../laboratorio.ipynb) traz esse molde pronto par
 
 ## 10. Próximas metaheurísticas
 
-A estrutura foi pensada para receber Busca Tabu, algoritmo genético e GRASP:
+A estrutura foi pensada para receber algoritmo genético, GRASP e path-relinking:
 
 - cada uma ganha sua pasta de esqueleto, como `simulated_annealing/`;
-- as peças novas entram na subpasta da representação: GRASP precisa de uma construtiva gulosa aleatorizada; o genético, de cruzamento, mutação e seleção; a Busca Tabu, de memória e de uma vizinhança que se possa listar;
+- as peças novas entram na subpasta da representação: GRASP precisa de uma construtiva gulosa aleatorizada; o genético, de cruzamento, mutação e seleção; o path-relinking, de um conjunto de soluções elite e de movimentos em direção a uma solução guia;
 - o histórico aceita chaves extras (por exemplo, a média da população no genético).

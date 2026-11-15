@@ -20,3 +20,11 @@ def test_calcular_valor_peso__solucao_invalida():
 
 def test_avaliar__so_o_valor():
     assert binaria.avaliar([1, 1, 0], ITENS, 9) == 20
+
+
+def test_avaliar_penalizada__valores_do_slide():
+    # Exemplo da aula: C = 23, α = soma dos benefícios = 15
+    itens = [Item(4, 2), Item(5, 2), Item(7, 3), Item(9, 4), Item(6, 4)]
+    assert binaria.avaliar_penalizada([0, 1, 0, 1, 1], itens, 23) == 10
+    assert binaria.avaliar_penalizada([1, 1, 0, 1, 1], itens, 23) == 12 - 15 * 1
+    assert binaria.avaliar_penalizada([0, 1, 1, 1, 1], itens, 23) == 13 - 15 * 4
