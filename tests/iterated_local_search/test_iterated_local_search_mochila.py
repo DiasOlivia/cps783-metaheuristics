@@ -1,19 +1,17 @@
 """Pytest tests for ILS on the 0-1 knapsack problem."""
 
+import itertools
 import random
 
 import pytest
 
-from iterated_local_search import (
-    Item,
-    busca_local,
-    calcular_valor_peso,
-    gerar_instancia_aleatoria,
-    iterated_local_search_mochila,
-    perturbar_solucao,
-    programacao_dinamica,
-)
-from iterated_local_search.plot import plotar_iterated_local_search
+from metaheuristics.iterated_local_search import iterated_local_search_mochila
+from metaheuristics.utils import binaria
+from metaheuristics.utils import ordem
+from metaheuristics.utils.instancia import Item
+from metaheuristics.utils.instancia import gerar_instancia_aleatoria
+from metaheuristics.utils.instancia import programacao_dinamica
+from metaheuristics.utils.plot import plotar_historico
 
 PLOT = False
 
@@ -25,49 +23,57 @@ def test_iterated_local_search_mochila__notebook_example():
     capacidade = sum(item.peso for item in itens) // 2
     valor_otimo, _ = programacao_dinamica(itens, capacidade)
 
-    melhor_solucao, output = iterated_local_search_mochila(
+    melhor_solucao, historico = iterated_local_search_mochila(
         itens=itens,
-        capacidade_mochila=capacidade,
+        capacidade=capacidade,
         max_iteracoes=250,
         intensidade_perturbacao=4,
     )
-    melhor_valor, peso = calcular_valor_peso(melhor_solucao, itens, capacidade)
+    melhor_valor, peso = binaria.calcular_valor_peso(
+        melhor_solucao, itens, capacidade
+    )
     gap = (valor_otimo - melhor_valor) / valor_otimo * 100 if valor_otimo else 0
+    melhores = list(historico["melhor_valor"].values())
 
-    assert len(output["valor_candidato"]) == 251  # inclui a iteração 0
-    assert len(output["melhor_valor"]) == 251
+    assert len(historico["valor_candidato"]) == 251  # inclui a iteração 0
+    assert len(historico["avaliacoes"]) == 251
     assert peso <= capacidade
-    assert melhor_valor == max(output["melhor_valor"].values())
-    assert all(b >= a for a, b in zip(
-        output["melhor_valor"].values(), list(output["melhor_valor"].values())[1:]
-    ))
+    assert melhor_valor == max(melhores)
+    assert all(b >= a for a, b in itertools.pairwise(melhores))
     assert gap <= 5
 
     if PLOT:
-        plotar_iterated_local_search(output, valor_otimo, save=True)
+        plotar_historico(historico, valor_otimo, save=True)
 
 
-def test_busca_local_nao_piora_e_respeita_capacidade():
-    itens = [Item(2, 3), Item(3, 4), Item(4, 8)]
-    inicial = [1, 0, 0]
-    final = busca_local(inicial, itens, 5)
-    assert inicial == [1, 0, 0]  # input não é modificado
-    assert calcular_valor_peso(final, itens, 5) == (8, 4)
+def test_iterated_local_search_mochila__representacao_por_ordem():
+    random.seed(0)
+    itens = gerar_instancia_aleatoria(12, 20, 100)
+    capacidade = sum(item.peso for item in itens) // 2
 
+    melhor_ordem, historico = iterated_local_search_mochila(
+        itens,
+        capacidade,
+        max_iteracoes=10,
+        intensidade_perturbacao=3,
+        avaliar=ordem.avaliar,
+        construtiva=ordem.construtiva_aleatoria,
+        busca_local=ordem.busca_local_primeira_melhora,
+        perturbacao=ordem.perturbar,
+    )
+    valor, peso = binaria.calcular_valor_peso(
+        ordem.decodificar(melhor_ordem, itens, capacidade), itens, capacidade
+    )
 
-def test_perturbacao_mantem_viabilidade():
-    random.seed(3)
-    itens = [Item(4, 6), Item(5, 8), Item(3, 5), Item(2, 2)]
-    inicial = [1, 0, 1, 0]
-    perturbada = perturbar_solucao(inicial, itens, 7, 3)
-    assert calcular_valor_peso(perturbada, itens, 7)[1] <= 7
-    assert inicial == [1, 0, 1, 0]
+    assert sorted(melhor_ordem) == list(range(12))
+    assert peso <= capacidade
+    assert valor == historico["melhor_valor"][10]
 
 
 def test_caso_sem_itens_e_sem_iteracoes():
-    solucao, output = iterated_local_search_mochila([], 0, 0)
+    solucao, historico = iterated_local_search_mochila([], 0, 0)
     assert solucao == []
-    assert output["melhor_valor"] == {0: 0}
+    assert historico["melhor_valor"] == {0: 0}
 
 
 def test_parametros_invalidos():

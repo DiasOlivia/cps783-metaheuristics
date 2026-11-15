@@ -48,56 +48,59 @@ retornar s
 
 ```text
 variable_neighborhood_search/
-├── __init__.py    # Item, instâncias, PD, solução inicial, busca local, agitação, BVNS
-├── plot.py        # Plot da evolução dos candidatos e da melhor solução
+├── __init__.py    # o esquema BVNS, que recebe as peças de utils/
 └── README.md
-test_variable_neighborhood_search_mochila.py
 ```
+
+A agitação, a busca local, a solução inicial e a aceitação são peças de [`utils/`](../utils/README.md), passadas como parâmetro (`perturbacao`, `busca_local`, `construtiva`, `aceitacao`, além de `avaliar` e `debug`). Os padrões reproduzem o BVNS descrito acima; para testar variantes, troque uma peça. O [notebook do laboratório](../laboratorio.ipynb) compara as combinações.
 
 ## Exemplo de uso
 
 ```python
 import random
-from variable_neighborhood_search import (
-    gerar_instancia_aleatoria, programacao_dinamica,
-    variable_neighborhood_search_mochila, calcular_valor_peso,
-)
-from variable_neighborhood_search.plot import plotar_variable_neighborhood_search
+
+from metaheuristics.utils import binaria
+from metaheuristics.utils.instancia import gerar_instancia_aleatoria
+from metaheuristics.utils.instancia import programacao_dinamica
+from metaheuristics.utils.plot import plotar_historico
+from metaheuristics.variable_neighborhood_search import variable_neighborhood_search_mochila
 
 random.seed(0)
 itens = gerar_instancia_aleatoria(20, 20, 100)
 capacidade = sum(item.peso for item in itens) // 2
 valor_otimo, _ = programacao_dinamica(itens, capacidade)
 
-melhor_solucao, output = variable_neighborhood_search_mochila(
+melhor_solucao, historico = variable_neighborhood_search_mochila(
     itens=itens,
-    capacidade_mochila=capacidade,
+    capacidade=capacidade,
     max_iteracoes=250,
     k_max=4,
 )
-melhor_valor, peso = calcular_valor_peso(melhor_solucao, itens, capacidade)
+melhor_valor, peso = binaria.calcular_valor_peso(melhor_solucao, itens, capacidade)
 gap = (valor_otimo - melhor_valor) / valor_otimo * 100 if valor_otimo else 0
 print(f"Ótimo={valor_otimo}, VNS={melhor_valor}, peso={peso}, gap={gap:.2f}%")
-plotar_variable_neighborhood_search(output, valor_otimo, save=True)
+plotar_historico(historico, valor_otimo, save=True)
 ```
 
-## Históricos (`output`)
+## Histórico
 
-- `valor_candidato[t]`: valor após agitação e busca local.
-- `melhor_valor[t]`: melhor valor aceito até a tentativa `t`.
+O retorno é `(melhor_solucao, historico)`, no formato comum a todos os esquemas:
+
+- `valor_candidato[t]`: valor após agitação e busca local;
+- `valor_atual[t]`: valor da solução corrente após a aceitação;
+- `melhor_valor[t]`: melhor valor encontrado até a tentativa `t`;
+- `avaliacoes[t]`: soluções avaliadas até a tentativa, incluindo as vizinhas da busca local;
 - `k[t]`: vizinhança utilizada na tentativa (0 na inicialização).
-- `aceito[t]`: 1 quando há melhoria estrita; 0 caso contrário.
 
 ## Como executar
 
-No diretório que contém a pasta `variable_neighborhood_search`:
+Na raiz do repositório:
 
 ```bash
-python -m pip install pytest matplotlib
-python -m pytest -q test_variable_neighborhood_search_mochila.py
+pytest tests/variable_neighborhood_search
 ```
 
-Altere `PLOT = True` no teste para mostrar e salvar um gráfico.
+Altere `PLOT = True` no teste para salvar um gráfico.
 
 ## Como avaliar
 

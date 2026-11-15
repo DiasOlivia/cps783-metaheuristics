@@ -22,7 +22,7 @@ Dados itens com pesos `peso_i`, valores `valor_i` e capacidade `W`, deseja-se:
 \sum_{i=1}^{n} peso_i x_i \le W,\quad x_i\in\{0,1\}.
 \]
 
-Cada solução é um vetor binário: `1` indica item incluído e `0`, excluído. A função `calcular_valor_peso` devolve valor zero para uma solução inviável, por compatibilidade com o exercício de SA; o ILS **mantém as soluções viáveis** por construção e reparo.
+Cada solução é um vetor binário: `1` indica item incluído e `0`, excluído. A função `binaria.calcular_valor_peso` devolve valor zero para uma solução inviável, por compatibilidade com o exercício de SA; o ILS **mantém as soluções viáveis** por construção e reparo.
 
 ## 3. Quatro componentes do ILS
 
@@ -40,12 +40,12 @@ A perturbação pode reduzir temporariamente o valor da solução, permitindo al
 ## 4. Pseudocódigo
 
 ```text
-s0       <- gerar_solucao_inicial(itens, W)
+s0       <- construtiva_aleatoria(itens, W)
 s        <- busca_local(s0)
 s_melhor <- s
 
 para k de 1 até max_iteracoes:
-    s_perturbada <- perturbar_solucao(s, intensidade)
+    s_perturbada <- perturbar(s, intensidade)
     s_candidata  <- busca_local(s_perturbada)
 
     se valor(s_candidata) > valor(s):
@@ -68,7 +68,7 @@ O fluxo é **solução inicial → busca local → [perturbação → busca loca
 | `max_iteracoes` | Número de ciclos de ILS | 250 |
 | `intensidade_perturbacao` | Bits alterados *antes* do reparo | 4 |
 | `random.seed(0)` | Reprodutibilidade da instância e da execução | 0 |
-| `capacidade_mochila` | Limite de peso | Metade da soma dos pesos (divisão inteira) |
+| `capacidade` | Limite de peso | Metade da soma dos pesos (divisão inteira) |
 
 O ILS desta implementação **não tem temperatura nem fator de resfriamento**. Sua exploração é determinada principalmente pela perturbação e pela busca local.
 
@@ -88,23 +88,21 @@ O teste exige `gap <= 5` para **essa instância com essa semente**. Esse é um c
 
 ## 7. Executar
 
-Na pasta que contém `iterated_local_search/` e `test_iterated_local_search_mochila.py`:
+Na raiz do repositório:
 
 ```bash
-pip install pytest matplotlib
-python -m pytest -v test_iterated_local_search_mochila.py
+pytest tests/iterated_local_search
 ```
 
 Exemplo Python:
 
 ```python
 import random
-from iterated_local_search import (
-    gerar_instancia_aleatoria,
-    programacao_dinamica,
-    iterated_local_search_mochila,
-)
-from iterated_local_search.plot import plotar_iterated_local_search
+
+from metaheuristics.iterated_local_search import iterated_local_search_mochila
+from metaheuristics.utils.instancia import gerar_instancia_aleatoria
+from metaheuristics.utils.instancia import programacao_dinamica
+from metaheuristics.utils.plot import plotar_historico
 
 random.seed(0)
 itens = gerar_instancia_aleatoria(20, 20, 100)
@@ -112,23 +110,27 @@ capacidade = sum(item.peso for item in itens) // 2
 otimo, _ = programacao_dinamica(itens, capacidade)
 melhor, historico = iterated_local_search_mochila(itens, capacidade, 250, 4)
 melhor_valor = historico["melhor_valor"][250]
-print(
-    f"Ótimo: {otimo} | ILS: {melhor_valor} | gap: {(otimo - melhor_valor) / otimo * 100:.2f}%"
-)
-plotar_iterated_local_search(historico, otimo, save=True)
+print(f"Ótimo: {otimo} | ILS: {melhor_valor} | gap: {(otimo - melhor_valor) / otimo * 100:.2f}%")
+plotar_historico(historico, otimo, save=True)
 ```
 
 Para produzir o gráfico durante o teste, mude `PLOT = False` para `True`.
 
-## 8. Histórico retornado
+## 8. Peças trocáveis
 
-`iterated_local_search_mochila` retorna `(melhor_solucao, output)`. Os dicionários em `output` são indexados de `0` a `max_iteracoes`:
+Os quatro componentes da seção 3 são parâmetros da função, com as peças de [`utils/`](../utils/README.md) como padrão: `construtiva`, `busca_local`, `perturbacao` e `aceitacao` (e também `avaliar` e `debug`). Sem passar nenhum, o ILS faz exatamente o descrito acima. Para testar uma variante, troque uma peça, por exemplo `aceitacao=metropolis(temperaturas(100, 1, 0.95), 5)` para aceitar pioras como o SA, ou `busca_local=binaria.busca_local_primeira_melhora`. O [notebook do laboratório](../laboratorio.ipynb) compara as combinações.
 
-- `valor_candidato`: valor depois da perturbação **e** da busca local.
-- `valor_atual`: valor do incumbente após aplicar o critério de aceitação.
-- `melhor_valor`: melhor valor encontrado até a iteração.
-- `aceito`: `1` para melhora aceita; `0` para candidato rejeitado (iteração 0 é inicial).
+## 9. Histórico retornado
 
-## 9. Vantagens e limitações
+`iterated_local_search_mochila` retorna `(melhor_solucao, historico)`, no formato comum a todos os esquemas. Os dicionários são indexados de `0` a `max_iteracoes`:
 
-**Vantagens:** simples, modular, admite busca local mais forte e não precisa de controle térmico. **Limitações:** não garante ótimo global; desempenho depende muito da vizinhança, intensidade da perturbação e aceitação. O critério de aceitação estrito pode estagnar em certas instâncias; aceitar empates ou pioras controladas são variantes possíveis, mas não fazem parte deste código.
+- `valor_candidato`: valor depois da perturbação **e** da busca local;
+- `valor_atual`: valor da solução corrente após o critério de aceitação;
+- `melhor_valor`: melhor valor encontrado até a iteração;
+- `avaliacoes`: soluções avaliadas até a iteração, incluindo as vizinhas examinadas pela busca local.
+
+A iteração 0 é a solução inicial já melhorada pela busca local.
+
+## 10. Vantagens e limitações
+
+**Vantagens:** simples, modular, admite busca local mais forte e não precisa de controle térmico. **Limitações:** não garante ótimo global; desempenho depende muito da vizinhança, intensidade da perturbação e aceitação. O critério de aceitação estrito pode estagnar em certas instâncias; aceitar empates ou pioras controladas são variantes possíveis, e dá para testá-las trocando a peça `aceitacao`.

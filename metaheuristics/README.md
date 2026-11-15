@@ -8,7 +8,7 @@ Antes de escolher um algoritmo, vale responder duas perguntas: **como escrever u
 
 Em muitos problemas combinatórios, uma solução é um **subconjunto** de um conjunto base `E`, e o conjunto de soluções viáveis é `F ⊆ 2^|E|`. A **representação** indica quais elementos de `E` estão na solução e quais não estão.
 
-Na Mochila 0-1 com `n` itens, `E` são os itens e a solução é um vetor binário `x`, com `x_i = 1` quando o item `i` é escolhido. É a representação usada no SA, no ILS e no VNS desta pasta: `[1, 1, 1, 1, 0, 0]` leva os itens 1 a 4.
+Na Mochila 0-1 com `n` itens, `E` são os itens e a solução é um vetor binário `x`, com `x_i = 1` quando o item `i` é escolhido. É a representação padrão do SA, do ILS e do VNS desta pasta: `[1, 1, 1, 1, 0, 0]` leva os itens 1 a 4.
 
 ## 2. Duas representações para o Caixeiro Viajante
 
@@ -69,10 +69,12 @@ O algoritmo cria e modifica essas anotações o tempo todo, então a representa�
 
 **Mochila 0-1.** Não há grafo, mas o dilema reaparece:
 
-- **Vetor binário** (o desta pasta): diz quais itens entram. Muitos vetores passam da capacidade. Por isso `calcular_valor_peso` devolve valor 0 para eles, e o ILS e o VNS reparam a solução depois de perturbá-la.
+- **Vetor binário** (o desta pasta): diz quais itens entram. Muitos vetores passam da capacidade. Por isso `binaria.calcular_valor_peso` devolve valor 0 para eles, e o ILS e o VNS reparam a solução depois de perturbá-la.
 - **Ordem dos itens + inserção gulosa:** a solução é uma permutação, decodificada colocando cada item que ainda couber. Toda ordem gera uma solução viável, mas há muita redundância: com 20 itens, são `20!` ordens para no máximo `2²⁰` subconjuntos.
 
-A segunda forma já aparece no repositório: `gerar_solucao_inicial` sorteia uma ordem e a decodifica, e a [mochila gulosa](guloso/mochila/README.md) escolhe a ordem por peso, valor ou densidade.
+A segunda forma já aparece no repositório: `binaria.construtiva_aleatoria` sorteia uma ordem e a decodifica, e a [mochila gulosa](guloso/mochila/README.md) escolhe a ordem por peso, valor ou densidade.
+
+As duas estão implementadas como peças em [`utils/`](utils/README.md): `utils/binaria/` e `utils/ordem/`. O SA, o ILS e o VNS aceitam qualquer uma delas, e o [notebook do laboratório](laboratorio.ipynb) permite compará-las.
 
 | | Representação direta | Representação por ordem |
 |---|---|---|
@@ -102,8 +104,8 @@ instância ─▶ [heurística construtiva] ─▶ 1ª solução ─▶ [busca l
 
 | Camada | O que faz | Exemplos nesta pasta |
 |---|---|---|
-| Heurística construtiva | monta uma solução do zero | os [gulosos](guloso/README.md) e `gerar_solucao_inicial` |
-| Heurística de melhoria (busca local) | troca a solução corrente por uma vizinha melhor enquanto houver uma | `busca_local` do ILS e do VNS (melhor melhora com 1-flip e troca 1-por-1) |
+| Heurística construtiva | monta uma solução do zero | os [gulosos](guloso/README.md) e `binaria.construtiva_aleatoria` |
+| Heurística de melhoria (busca local) | troca a solução corrente por uma vizinha melhor enquanto houver uma | `busca_local_melhor_melhora` e `busca_local_primeira_melhora`, com 1-flip e troca 1-por-1, em [`utils/binaria/`](utils/README.md) |
 | Metaheurística | decide o que fazer quando a busca local para num ótimo local | SA, ILS e VNS |
 
 Construtiva e melhoria são os dois tipos básicos de heurística (seção 5 do [README do guloso](guloso/README.md)). A busca local sozinha esbarra num limite: ela termina no primeiro ótimo local encontrado (slide 33).
@@ -119,13 +121,15 @@ Portanto, construir uma solução e depois melhorá-la ainda é heurística: con
 
 Em [`iterated_local_search_mochila`](iterated_local_search/__init__.py):
 
-1. `gerar_solucao_inicial` é a heurística construtiva;
-2. `busca_local` é a heurística de melhoria;
-3. o laço com `perturbar_solucao`, uma nova `busca_local` e o critério de aceitação é a metaheurística.
+1. `binaria.construtiva_aleatoria` é a heurística construtiva;
+2. `binaria.busca_local_melhor_melhora` é a heurística de melhoria;
+3. o laço com `binaria.perturbar`, uma nova busca local e o critério de aceitação é a metaheurística.
+
+Cada uma dessas peças é um parâmetro da função, então dá para trocar uma camada sem mexer nas outras ([`utils/`](utils/README.md)).
 
 ### 5.5 Contraexemplo: o SA
 
-O [Simulated Annealing](simulated_annealing/README.md) desta pasta não tem busca local. Ele anda de vizinho em vizinho e às vezes aceita uma piora, com uma probabilidade que diminui junto com a temperatura. Uma metaheurística não precisa partir de uma solução pronta para melhorá-la: o que a define é a estratégia para não ficar preso em ótimos locais.
+O [Simulated Annealing](simulated_annealing/README.md) desta pasta, por padrão, não tem busca local: o parâmetro `busca_local` vem vazio. Ele anda de vizinho em vizinho e às vezes aceita uma piora, com uma probabilidade que diminui junto com a temperatura. Uma metaheurística não precisa partir de uma solução pronta para melhorá-la: o que a define é a estratégia para não ficar preso em ótimos locais.
 
 ## 6. Questões para revisão
 
