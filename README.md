@@ -16,7 +16,8 @@ Repositório de estudo sobre **heurísticas e metaheurísticas** para problemas 
 | [`metaheuristics/variable_neighborhood_search/`](metaheuristics/variable_neighborhood_search/README.md) | Variable Neighborhood Search | Mochila 0-1 |
 | [`metaheuristics/adaptive_large_neighborhood_search/`](metaheuristics/adaptive_large_neighborhood_search/README.md) | Adaptive Large Neighbourhood Search | Mochila 0-1 |
 | [`metaheuristics/tabu_search/`](metaheuristics/tabu_search/README.md) | Busca Tabu | Mochila 0-1 |
-| [`metaheuristics/utils/`](metaheuristics/utils/README.md) | Peças trocáveis do SA, ILS, VNS, ALNS e Busca Tabu, gráficos e depurador visual | Mochila 0-1 |
+| [`metaheuristics/grasp/`](metaheuristics/grasp/README.md) | GRASP + Path-Relinking | Mochila 0-1 |
+| [`metaheuristics/utils/`](metaheuristics/utils/README.md) | Peças trocáveis do SA, ILS, VNS, ALNS, Busca Tabu e GRASP, gráficos e depurador visual | Mochila 0-1 |
 | [`metaheuristics/laboratorio.ipynb`](metaheuristics/laboratorio.ipynb) | Notebook para montar e comparar combinações | Mochila 0-1 |
 
 ## Instalação

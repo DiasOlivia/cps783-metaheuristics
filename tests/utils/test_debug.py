@@ -5,6 +5,7 @@ import pytest
 from metaheuristics.adaptive_large_neighborhood_search import (
     adaptive_large_neighborhood_search_mochila,
 )
+from metaheuristics.grasp import grasp_mochila
 from metaheuristics.iterated_local_search import iterated_local_search_mochila
 from metaheuristics.simulated_annealing import simulated_annealing_mochila
 from metaheuristics.tabu_search import tabu_search_mochila
@@ -114,6 +115,23 @@ def test_depurador__busca_tabu_desenha_a_vizinhanca(tmp_path):
     nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
     assert sem_debug == com_debug
     assert sum("vizinhanca" in nome for nome in nomes) == 5
+
+
+def test_depurador__grasp_desenha_a_reconexao(tmp_path):
+    # Na instância correlacionada os ótimos locais variam, e o PR tem caminho
+    random.seed(3)
+    itens = gerar_instancia_aleatoria(8, 20, 100, correlacionada=True)
+    capacidade = sum(item.peso for item in itens) // 2
+    random.seed(4)
+    sem_debug = grasp_mochila(itens, capacidade, max_iteracoes=6, alfa=0.9)
+    debug = Depurador(itens, capacidade, save=True, limite=60, pasta=tmp_path)
+    random.seed(4)
+    com_debug = grasp_mochila(
+        itens, capacidade, max_iteracoes=6, alfa=0.9, debug=debug
+    )
+    nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
+    assert sem_debug == com_debug
+    assert any("reconexao" in nome for nome in nomes)
 
 
 def test_depurador__exige_show_ou_save():
