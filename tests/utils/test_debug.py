@@ -5,6 +5,7 @@ import pytest
 from metaheuristics.adaptive_large_neighborhood_search import (
     adaptive_large_neighborhood_search_mochila,
 )
+from metaheuristics.ant_colony_optimization import ant_colony_optimization_mochila
 from metaheuristics.genetic_algorithm import genetic_algorithm_mochila
 from metaheuristics.grasp import grasp_mochila
 from metaheuristics.iterated_local_search import iterated_local_search_mochila
@@ -174,6 +175,23 @@ def test_depurador__ag_desenha_a_populacao(tmp_path):
     assert sem_debug == com_debug
     assert sum("populacao" in nome for nome in nomes) == 3  # gerações 0, 2 e 4
     assert any("movimento" in nome for nome in nomes)  # a mutação
+
+
+def test_depurador__aco_desenha_as_formigas(tmp_path):
+    itens, capacidade = _instancia()
+    random.seed(5)
+    sem_debug = ant_colony_optimization_mochila(
+        itens, capacidade, numero_formigas=4, max_sem_melhora=3
+    )
+    debug = Depurador(itens, capacidade, save=True, a_cada=2, pasta=tmp_path)
+    random.seed(5)
+    com_debug = ant_colony_optimization_mochila(
+        itens, capacidade, numero_formigas=4, max_sem_melhora=3, debug=debug
+    )
+    nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
+    pares = [t for t in sem_debug[1]["melhor_valor"] if t % 2 == 0]
+    assert sem_debug == com_debug
+    assert sum("formigas" in nome for nome in nomes) == len(pares)
 
 
 def test_depurador__exige_show_ou_save():

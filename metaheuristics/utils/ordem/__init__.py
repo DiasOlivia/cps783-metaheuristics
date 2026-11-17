@@ -9,6 +9,8 @@ from metaheuristics.utils.ordem.cruzamento import cruzamento_opx
 from metaheuristics.utils.ordem.cruzamento import cruzamento_pmx
 from metaheuristics.utils.ordem.enxame import coordenadas
 from metaheuristics.utils.ordem.enxame import mover_chaves
+from metaheuristics.utils.ordem.formiga import construtiva_formiga
+from metaheuristics.utils.ordem.formiga import trilha
 from metaheuristics.utils.ordem.insercao import insercao_aleatoria
 from metaheuristics.utils.ordem.insercao import insercao_arrependimento
 from metaheuristics.utils.ordem.insercao import insercao_gulosa
@@ -26,6 +28,7 @@ __all__ = [
     "avaliar",
     "busca_local_primeira_melhora",
     "construtiva_aleatoria",
+    "construtiva_formiga",
     "construtiva_gulosa",
     "construtiva_gulosa_aleatoria",
     "coordenadas",
@@ -45,5 +48,6 @@ __all__ = [
     "remocao_aleatoria",
     "remocao_pior",
     "remocao_shaw",
+    "trilha",
     "vizinhanca_troca",
 ]

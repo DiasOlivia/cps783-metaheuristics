@@ -2,7 +2,7 @@
 
 > Material de estudo — **CPS783: Metaheurísticas em Otimização Combinatória (2026/3)**.
 
-Esta pasta separa o SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP, o PSO e o AG em **peças trocáveis**. Os oito algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS, o movimento como mutação do AG...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
+Esta pasta separa o SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP, o PSO, o AG e o ACO em **peças trocáveis**. Os nove algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS, o movimento como mutação do AG...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
 
 Para experimentar, use o [notebook do laboratório](../laboratorio.ipynb). Os conceitos por trás (representação, heurística × metaheurística) estão no [README de conceitos](../README.md).
 
@@ -14,6 +14,7 @@ utils/
 ├── aceitacao.py        aceita_melhora, temperaturas, metropolis
 ├── reconexao.py        reconectar, atualizar_elite (path-relinking e pool elite)
 ├── selecao.py          selecao_roleta, selecao_ranking, selecao_torneio, selecao_classes
+├── feromonio.py        Feromonio (trilha de feromônio do ACO)
 ├── historico.py        novo_historico, registrar
 ├── experimento.py      rodar_sementes, resumir, tabela
 ├── plot.py             plotar_historico, plotar_comparacao
@@ -30,7 +31,8 @@ utils/
 │   ├── reconexao.py    passos_para_guia
 │   ├── enxame.py       coordenadas, mover_sigmoide
 │   ├── cruzamento.py   cruzamento_um_ponto, cruzamento_multiponto, cruzamento_uniforme
-│   └── reparo.py       reparar
+│   ├── reparo.py       reparar
+│   └── formiga.py      construtiva_formiga, trilha
 └── ordem/              peças da representação por ordem
     ├── avaliacao.py    avaliar, decodificar
     ├── construtiva.py  construtiva_aleatoria, construtiva_gulosa, construtiva_gulosa_aleatoria
@@ -43,7 +45,8 @@ utils/
     ├── reconexao.py    passos_para_guia
     ├── enxame.py       coordenadas, mover_chaves
     ├── cruzamento.py   cruzamento_opx, cruzamento_lox, cruzamento_pmx
-    └── mutacao.py      mutacao_insercao, mutacao_inversao
+    ├── mutacao.py      mutacao_insercao, mutacao_inversao
+    └── formiga.py      construtiva_formiga, trilha
 ```
 
 O que fica na raiz de `utils/` vale para as duas representações. O que fica em `binaria/` e `ordem/` só funciona com soluções daquela representação.
@@ -67,7 +70,7 @@ A mesma solução (quais itens estão na mochila) pode ser escrita de dois jeito
 | Viabilidade | pode passar da capacidade: `binaria.calcular_valor_peso` devolve valor 0 e a perturbação repara | sempre viável |
 | Redundância | cada solução é um vetor só | `[3, 0, 6, 5, 4, 2, 1]` dá a mesma solução |
 
-**Regra:** numa execução, todas as peças de `binaria/` ou de `ordem/` (avaliar, construtiva, movimento, perturbação, busca local, remoção, inserção, cruzamento, mutação, reparo) precisam ser da mesma representação. A aceitação, a seleção, o histórico, os gráficos e o depurador servem para as duas.
+**Regra:** numa execução, todas as peças de `binaria/` ou de `ordem/` (avaliar, construtiva, movimento, perturbação, busca local, remoção, inserção, cruzamento, mutação, reparo, construção da formiga, trilha) precisam ser da mesma representação. A aceitação, a seleção, o feromônio, o histórico, os gráficos e o depurador servem para as duas.
 
 ## 3. Catálogo de peças
 
@@ -89,6 +92,8 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 | mutação (AG) | o mesmo do movimento | `binaria.gerar_vizinho` | `ordem.gerar_vizinho` (troca), `ordem.mutacao_insercao`, `ordem.mutacao_inversao`, `ordem.perturbar` |
 | reparo (AG) | `(solucao, itens, capacidade) -> solucao` | `binaria.reparar` (tira os de pior densidade até caber e completa pelos de melhor) | — (`reparo=None`: toda ordem é viável) |
 | seleção (AG) | `(valores, quantidade) -> [índices]` | `selecao_roleta`, `selecao_ranking`, `selecao_torneio`, `selecao_classes` | (as mesmas) |
+| construção da formiga (ACO) | `(itens, capacidade, feromonio=None, alfa=1, beta=1, q0=0) -> solucao` | `binaria.construtiva_formiga` (feromônio por item) | `ordem.construtiva_formiga` (feromônio por transição `(i, j)`, como as arestas do caixeiro) |
+| trilha (ACO) | `(solucao, itens, capacidade) -> [componentes]` | `binaria.trilha` (os itens dentro) | `ordem.trilha` (as transições entre os itens colocados) |
 | vizinhança (Busca Tabu) | `(solucao, itens, capacidade) -> [(rotulo, itens_alterados, vizinha)]` | `binaria.vizinhanca_flip` (inverte um bit); `binaria.vizinhanca_flip_troca` (+ troca 1-por-1) | `ordem.vizinhanca_troca` (troca duas posições) |
 | aceitação | `(delta, iteracao) -> bool` | `aceita_melhora`; `metropolis(temperaturas(T0, Tmin, α), iteracoes_por_temperatura)` | (as mesmas) |
 
@@ -101,6 +106,7 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 - No PSO, as coordenadas transformam a solução nos números da equação da velocidade, e o voo aplica a velocidade. A posição de cada partícula continua sendo uma solução comum, então as outras peças servem para o PSO.
 - No AG, a mutação tem o encaixe do movimento, então qualquer movimento ou perturbação serve de mutação. Os cruzamentos aceitam os pontos de corte (`corte=`, `cortes=`) ou a máscara (`mascara=`) para reproduzir os exemplos dos slides; sem eles, sorteiam. A seleção não depende da representação, por isso fica em `selecao.py`, na raiz; para mudar o `q` do torneio ou as frações das classes, use `functools.partial`.
 - O cruzamento binário não olha a capacidade: metade dos filhos não cabe. O `binaria.reparar` (Chu e Beasley, 1998) os torna viáveis e completa a mochila de forma gulosa. Na ordem, o decodificador já faz esse papel, então o reparo é `None`.
+- No ACO, a construção da formiga escolhe, entre os itens que cabem, o próximo com probabilidade `∝ τ^α η^β` (η = densidade), e a trilha diz em que componentes a formiga deposita. O feromônio (`Feromonio`, na raiz) é um dicionário componente → τ: um componente que ninguém usou vale o τ0 evaporado. Sem feromônio, a construção da formiga é um sorteio guloso por densidade e serve de construtiva comum.
 - A reconexão lista os passos que trazem um atributo de uma solução guia. O caminho e o pool elite ficam em `reconexao.py`, na raiz, porque não dependem da representação.
 - Com a `binaria.avaliar_penalizada`, uma solução que não cabe vale no máximo 0, então nunca supera uma viável. Ela encaixa em qualquer esquema.
 - A `metropolis` guarda a última decisão em `aceitar.ultimo` (temperatura, chance e sorteio), que o depurador mostra.
@@ -109,7 +115,7 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 
 ## 4. Os esquemas e onde as peças entram
 
-SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. A Busca Tabu é, ela mesma, uma busca local: não sorteia vizinhas, examina a vizinhança inteira e vai para a melhor vizinha admissível, mesmo que piore. O GRASP recomeça a cada iteração: construção gulosa aleatória → busca local → path-relinking com uma solução elite. O PSO move um enxame: cada partícula voa com uma velocidade atraída pela sua melhor posição e pela melhor do enxame. O AG evolui uma população: seleciona pais, cruza, muta, repara os filhos e escolhe os sobreviventes, mantendo a elite. O melhor resultado é guardado à parte do atual.
+SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. A Busca Tabu é, ela mesma, uma busca local: não sorteia vizinhas, examina a vizinhança inteira e vai para a melhor vizinha admissível, mesmo que piore. O GRASP recomeça a cada iteração: construção gulosa aleatória → busca local → path-relinking com uma solução elite. O PSO move um enxame: cada partícula voa com uma velocidade atraída pela sua melhor posição e pela melhor do enxame. O AG evolui uma população: seleciona pais, cruza, muta, repara os filhos e escolhe os sobreviventes, mantendo a elite. O ACO repete construções guiadas pelo feromônio: a cada iteração, cada formiga constrói uma solução, e o feromônio evapora e recebe os depósitos. O melhor resultado é guardado à parte do atual.
 
 | | construtiva | movimento / perturbação | busca local | aceitação | regra própria |
 |---|---|---|---|---|---|
@@ -119,6 +125,7 @@ SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → la
 | ALNS | `binaria.construtiva_aleatoria` | `remocoes=` (aleatória, pior, Shaw) e `insercoes=` (aleatória, gulosa), sorteadas por roleta (k = q sorteado) | `None` | `None` = Metropolis, uma iteração por temperatura | piora só se a solução for nova; pesos dos operadores atualizados a cada segmento |
 | BT | `binaria.construtiva_aleatoria` | `vizinhanca=binaria.vizinhanca_flip`, examinada inteira | — | vai sempre para a melhor vizinha admissível; `avaliar=binaria.avaliar_penalizada` | lista tabu (vetor de prazo), aspiração por objetivo e por default; para após `max_sem_melhora` iterações sem melhora |
 | GRASP | `binaria.construtiva_gulosa_aleatoria` (α = 0,3), a cada iteração | `reconexao=binaria.passos_para_guia` (path-relinking com o pool elite; `None` = GRASP puro) | `binaria.busca_local_primeira_melhora` | — (multi-start) | α fixo ou reativo; hashing das construções; direções do PR |
+| ACO | `construtiva=binaria.construtiva_formiga` (uma por formiga, guiada pelo feromônio) | `trilha=binaria.trilha` (onde depositar) | `None`; se houver, roda na solução de cada formiga | — | depósito do AS, EAS, ASrank ou ACS; para após `max_sem_melhora` iterações sem melhora |
 | AG | `binaria.construtiva_aleatoria` (uma por indivíduo) | `cruzamento=binaria.cruzamento_uniforme`; `mutacao=binaria.gerar_vizinho` (k = `intensidade_mutacao`); `reparo=binaria.reparar` | `None`; se houver, roda em cada indivíduo novo, depois do reparo | — (seleção dos sobreviventes) | seleção dos pais e dos sobreviventes por roleta; elite de `tamanho_elite` |
 | PSO | `binaria.construtiva_aleatoria` (uma por partícula) | `mover=binaria.mover_sigmoide`, com `coordenadas=binaria.coordenadas` | `None`; se houver, roda na partícula que melhora o próprio pbest | — (a partícula sempre voa); `avaliar=binaria.avaliar_penalizada` | velocidade da equação (1), limitada a `vmax`; inércia fixa ou decrescente |
 
@@ -176,11 +183,11 @@ Todo esquema devolve `(melhor_solucao, historico)`. O histórico é um dicionár
 | `valor_atual` | valor da solução corrente depois da aceitação |
 | `melhor_valor` | melhor valor encontrado até a iteração |
 | `avaliacoes` | soluções avaliadas, acumuladas: cada candidato conta 1, e a busca local soma as vizinhas que examinou |
-| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS), `tamanho_tabu` (BT), `alfa` (GRASP), `inercia` (PSO), `distintos` (AG) | extras de cada esquema |
+| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS), `tamanho_tabu` (BT), `alfa` (GRASP), `inercia` (PSO), `distintos` (AG e ACO) | extras de cada esquema |
 
-Dois esquemas leem as chaves de outro jeito, porque não têm uma única solução corrente. No **GRASP**, `valor_candidato` é a solução construída, `valor_atual` é a solução depois da busca local e do path-relinking, e o histórico começa na iteração 1. No **PSO**, `valor_candidato` é a média do enxame, e `valor_atual`, a melhor partícula da iteração. No **AG**, o mesmo vale para a população de cada geração, e `distintos` conta os indivíduos diferentes (a diversidade).
+Alguns esquemas leem as chaves de outro jeito, porque não têm uma única solução corrente. No **GRASP**, `valor_candidato` é a solução construída, `valor_atual` é a solução depois da busca local e do path-relinking, e o histórico começa na iteração 1. No **PSO**, `valor_candidato` é a média do enxame, e `valor_atual`, a melhor partícula da iteração. No **AG**, o mesmo vale para a população de cada geração, e `distintos` conta os indivíduos diferentes (a diversidade). No **ACO**, o histórico começa na iteração 1, como no GRASP; `valor_candidato` é a média das formigas, `valor_atual` é a melhor formiga da iteração, e `distintos = 1` é a estagnação.
 
-**Compare esquemas pelas avaliações, não pelas iterações.** Uma iteração do SA avalia 1 vizinho; uma do ILS ou do VNS roda uma busca local inteira, que pode avaliar centenas; uma do PSO avalia uma solução por partícula; uma geração do AG avalia cada filho.
+**Compare esquemas pelas avaliações, não pelas iterações.** Uma iteração do SA avalia 1 vizinho; uma do ILS ou do VNS roda uma busca local inteira, que pode avaliar centenas; uma do PSO avalia uma solução por partícula; uma geração do AG avalia cada filho; uma iteração do ACO, uma solução por formiga.
 
 ## 6. Instâncias
 
@@ -226,7 +233,7 @@ Cada figura tem três painéis:
 
 ## 9. Como montar uma mistura
 
-1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila`, `adaptive_large_neighborhood_search_mochila`, `tabu_search_mochila`, `grasp_mochila`, `particle_swarm_optimization_mochila` ou `genetic_algorithm_mochila`.
+1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila`, `adaptive_large_neighborhood_search_mochila`, `tabu_search_mochila`, `grasp_mochila`, `particle_swarm_optimization_mochila`, `genetic_algorithm_mochila` ou `ant_colony_optimization_mochila`.
 2. Troque as peças passando-as como parâmetro, todas da mesma representação.
 3. Rode em várias sementes com `rodar_sementes`, resuma com `resumir` e compare com a linha de base em `tabela` e `plotar_comparacao`.
 
@@ -237,5 +244,5 @@ A última seção do [notebook](../laboratorio.ipynb) traz esse molde pronto par
 A estrutura recebe novas metaheurísticas e extensões do mesmo jeito:
 
 - cada uma ganha sua pasta de esqueleto, como `genetic_algorithm/`;
-- as peças novas entram na subpasta da representação, ou na raiz de `utils/` quando não dependem dela, como a seleção; o path-relinking na Busca Tabu pode reaproveitar `reconectar` e `atualizar_elite`;
-- o histórico aceita chaves extras, como os `distintos` do AG.
+- as peças novas entram na subpasta da representação, ou na raiz de `utils/` quando não dependem dela, como a seleção e o feromônio; o path-relinking na Busca Tabu pode reaproveitar `reconectar` e `atualizar_elite`;
+- o histórico aceita chaves extras, como os `distintos` do AG e do ACO.

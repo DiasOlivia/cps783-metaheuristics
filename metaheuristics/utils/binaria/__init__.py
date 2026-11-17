@@ -11,6 +11,8 @@ from metaheuristics.utils.binaria.cruzamento import cruzamento_um_ponto
 from metaheuristics.utils.binaria.cruzamento import cruzamento_uniforme
 from metaheuristics.utils.binaria.enxame import coordenadas
 from metaheuristics.utils.binaria.enxame import mover_sigmoide
+from metaheuristics.utils.binaria.formiga import construtiva_formiga
+from metaheuristics.utils.binaria.formiga import trilha
 from metaheuristics.utils.binaria.insercao import insercao_aleatoria
 from metaheuristics.utils.binaria.insercao import insercao_gulosa
 from metaheuristics.utils.binaria.movimento import gerar_vizinho
@@ -30,6 +32,7 @@ __all__ = [
     "busca_local_primeira_melhora",
     "calcular_valor_peso",
     "construtiva_aleatoria",
+    "construtiva_formiga",
     "construtiva_gulosa",
     "construtiva_gulosa_aleatoria",
     "coordenadas",
@@ -46,6 +49,7 @@ __all__ = [
     "remocao_pior",
     "remocao_shaw",
     "reparar",
+    "trilha",
     "vizinhanca_flip",
     "vizinhanca_flip_troca",
 ]
