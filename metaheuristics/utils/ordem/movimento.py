@@ -13,6 +13,8 @@ def gerar_vizinho(
 ) -> list[int]:
     """Swap two random positions of a copy of the order, ``k`` times.
 
+    Created for the SA in the order representation (move).
+
     Parameters
     ----------
     solucao : list of int

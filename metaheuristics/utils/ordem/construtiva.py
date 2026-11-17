@@ -8,6 +8,9 @@ from metaheuristics.utils.instancia import Item
 def construtiva_aleatoria(itens: list[Item], capacidade: int) -> list[int]:
     """Return a random permutation of the item indices.
 
+    Created for the SA, the ILS and the VNS in the order representation (initial
+    solution).
+
     Parameters
     ----------
     itens : list of Item
@@ -27,6 +30,9 @@ def construtiva_aleatoria(itens: list[Item], capacidade: int) -> list[int]:
 
 def construtiva_gulosa(itens: list[Item], capacidade: int) -> list[int]:
     """Return the item indices by non-increasing value-to-weight ratio.
+
+    Created for the SA, the ILS and the VNS in the order representation (initial
+    solution).
 
     Decoding this order gives the greedy-by-density solution.
 
@@ -49,6 +55,8 @@ def construtiva_gulosa_aleatoria(
     itens: list[Item], capacidade: int, alfa: float = 0.3, vies: Vies = "aleatoria"
 ) -> list[int]:
     """Build an order by the greedy randomized construction of GRASP.
+
+    Created for the GRASP (construction phase).
 
     The items chosen by ``binaria.construtiva_gulosa_aleatoria`` come first, in
     the order they were chosen, followed by the others by non-increasing density.

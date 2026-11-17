@@ -8,6 +8,8 @@ def vizinhanca_troca(
 ) -> list[Vizinha]:
     """List every order obtained by swapping two positions.
 
+    Created for the Tabu Search (neighborhood).
+
     The swaps follow the order ``(0, 1), (0, 2), ..., (n-2, n-1)``, the same of
     ``ordem.busca_local_primeira_melhora``. The items swapped, not the positions,
     are the attributes that become tabu.

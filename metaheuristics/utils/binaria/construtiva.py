@@ -19,6 +19,8 @@ VIESES: dict[str, Callable[[int], float]] = {
 def construtiva_aleatoria(itens: list[Item], capacidade: int) -> list[int]:
     """Build a random feasible solution: shuffle the items and insert what fits.
 
+    Created for the SA, the ILS and the VNS (initial solution).
+
     Parameters
     ----------
     itens : list of Item
@@ -45,6 +47,9 @@ def construtiva_aleatoria(itens: list[Item], capacidade: int) -> list[int]:
 
 def construtiva_gulosa(itens: list[Item], capacidade: int) -> list[int]:
     """Build the greedy solution by non-increasing value-to-weight ratio.
+
+    Created for the SA, the ILS and the VNS (initial solution), from the greedy
+    knapsack heuristic.
 
     Parameters
     ----------
@@ -101,6 +106,8 @@ def construtiva_gulosa_aleatoria(
     itens: list[Item], capacidade: int, alfa: float = 0.3, vies: Vies = "aleatoria"
 ) -> list[int]:
     """Build a solution by the greedy randomized construction of GRASP.
+
+    Created for the GRASP (construction phase).
 
     At each step the candidates are the items that still fit, ranked by
     value-to-weight ratio. The restricted candidate list (RCL) keeps those with

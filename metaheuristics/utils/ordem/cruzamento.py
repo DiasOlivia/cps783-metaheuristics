@@ -45,6 +45,8 @@ def cruzamento_opx(
 ) -> tuple[list[int], list[int]]:
     """Order-preserving one-point crossover (OPX).
 
+    Created for the Genetic Algorithm (crossover).
+
     The child keeps the genes of one parent before the cut, in place, and takes
     the others in the order they appear in the other parent.
 
@@ -87,6 +89,8 @@ def cruzamento_lox(
 ) -> tuple[list[int], list[int]]:
     """Linear-order crossover (LOX).
 
+    Created for the Genetic Algorithm (crossover).
+
     The child keeps the genes of one parent between the two cuts, in place, and
     fills the other positions, from left to right, with the remaining genes in
     the order they appear in the other parent.
@@ -125,6 +129,8 @@ def cruzamento_pmx(
     cortes: tuple[int, int] | None = None,
 ) -> tuple[list[int], list[int]]:
     """Partially-mapped crossover (PMX).
+
+    Created for the Genetic Algorithm (crossover).
 
     The child keeps the genes of one parent between the two cuts, in place, and
     takes the other positions from the other parent. A gene that would repeat is

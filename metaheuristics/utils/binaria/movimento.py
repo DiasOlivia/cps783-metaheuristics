@@ -13,6 +13,8 @@ def gerar_vizinho(
 ) -> list[int]:
     """Apply ``k`` successive feasible one-bit flips to a copy of the solution.
 
+    Created for the SA (move).
+
     Each flip draws a random position: a selected item is removed, and an
     unselected item is added only if it fits; otherwise another position is drawn.
     The same position may be drawn in two flips, so the final distance can be

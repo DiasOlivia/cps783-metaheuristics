@@ -4,6 +4,8 @@ import random
 def selecao_roleta(valores: list[float], quantidade: int) -> list[int]:
     """Draw individuals with probability proportional to their fitness.
 
+    Created for the Genetic Algorithm (selection).
+
     Each individual gets a slice of the wheel proportional to its value, and the
     wheel is spun ``quantidade`` times, so the same individual may come out more
     than once. Values below zero count as zero; if every slice is zero, the draw
@@ -30,6 +32,8 @@ def selecao_roleta(valores: list[float], quantidade: int) -> list[int]:
 def selecao_ranking(valores: list[float], quantidade: int) -> list[int]:
     """Draw individuals with probability proportional to their rank.
 
+    Created for the Genetic Algorithm (selection).
+
     The worst individual has weight 1 and the best has weight ``len(valores)``
     (linear ranking), whatever the size of the differences in fitness. Ties get
     consecutive ranks.
@@ -55,6 +59,8 @@ def selecao_ranking(valores: list[float], quantidade: int) -> list[int]:
 
 def selecao_torneio(valores: list[float], quantidade: int, q: int = 2) -> list[int]:
     """Run ``quantidade`` tournaments of ``q`` individuals; the best one wins each.
+
+    Created for the Genetic Algorithm (selection).
 
     The competitors are drawn uniformly and with replacement, so an individual may
     face itself. A larger ``q`` means a stronger selective pressure; ``q = 2`` is
@@ -90,6 +96,8 @@ def selecao_classes(
     piores: float = 0.2,
 ) -> list[int]:
     """Take the best and the worst individuals and draw the rest at random.
+
+    Created for the Genetic Algorithm (selection).
 
     Of the ``quantidade`` chosen, a fraction ``melhores`` are the best individuals,
     a fraction ``piores`` are the worst ones, and the remaining are drawn

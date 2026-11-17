@@ -9,6 +9,8 @@ def coordenadas(
 ) -> list[float]:
     """Return the position of a binary particle: its bits, as numbers.
 
+    Created for the PSO (particle position).
+
     Parameters
     ----------
     solucao : list of int
@@ -34,6 +36,8 @@ def mover_sigmoide(
     velocidade: list[float],
 ) -> list[int]:
     """Fly a binary particle: each bit is 1 with probability ``sigmoide(v)``.
+
+    Created for the PSO (flight).
 
     In the binary PSO of Kennedy and Eberhart (1997), the velocity of an item is
     the tendency of its bit to be 1, and the new position depends on the velocity

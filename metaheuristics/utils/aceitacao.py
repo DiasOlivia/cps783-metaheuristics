@@ -6,6 +6,8 @@ from collections.abc import Callable
 def aceita_melhora(delta: float, iteracao: int) -> bool:
     """Accept a candidate only when it strictly improves the current value.
 
+    Created for the ILS and the VNS (acceptance).
+
     Parameters
     ----------
     delta : float
@@ -25,6 +27,8 @@ def temperaturas(
     temperatura_inicial: float, temperatura_minima: float, fator_resfriamento: float
 ) -> list[float]:
     """List the temperature of each level of a geometric cooling schedule.
+
+    Created for the SA (cooling schedule).
 
     Each level is the previous one times the cooling factor, while it stays above
     the minimum temperature.
@@ -57,6 +61,8 @@ def metropolis(
     niveis: list[float], iteracoes_por_temperatura: int
 ) -> Callable[[float, int], bool]:
     """Build the Metropolis acceptance rule for a cooling schedule.
+
+    Created for the SA (acceptance).
 
     An improvement is always accepted. A worsening ``delta`` is accepted with
     probability ``exp(delta / T)``, where ``T`` is the level of the iteration;

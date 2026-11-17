@@ -35,6 +35,8 @@ def remocao_aleatoria(
 ) -> list[int]:
     """Drop from the order ``k`` random items of the decoded knapsack.
 
+    Created for the ALNS (destroy operator).
+
     Parameters
     ----------
     solucao : list of int
@@ -73,6 +75,8 @@ def remocao_pior(
 ) -> list[int]:
     """Drop from the order the ``k`` decoded items with the lowest density.
 
+    Created for the ALNS (destroy operator).
+
     Parameters
     ----------
     solucao : list of int
@@ -110,6 +114,8 @@ def remocao_shaw(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Drop from the order a random decoded item and the ``k - 1`` most similar.
+
+    Created for the ALNS (destroy operator).
 
     Similarity follows ``binaria.remocao_shaw``: close weights and values.
 

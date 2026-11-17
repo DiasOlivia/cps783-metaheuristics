@@ -4,6 +4,8 @@ from collections.abc import Hashable
 class Feromonio(dict):
     """Pheromone trail: a dict from solution component to its pheromone ``τ``.
 
+    Created for the ACO (pheromone trail).
+
     A component that no ant has used yet is not stored and is worth the
     ``fundo``, the initial pheromone ``τ0`` evaporated along with the others. So
     the trail works for any kind of component (an item, a transition between

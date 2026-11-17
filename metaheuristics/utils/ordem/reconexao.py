@@ -6,6 +6,8 @@ def passos_para_guia(
 ) -> list[tuple[str, list[int]]]:
     """List the swaps that put, at one position, the item the guide has there.
 
+    Created for the GRASP (path-relinking).
+
     Each move fixes at least one position where the order differs from the guide,
     so the number of moves is the number of differing positions.
 

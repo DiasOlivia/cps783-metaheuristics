@@ -6,6 +6,8 @@ def calcular_valor_peso(
 ) -> tuple[int, int]:
     """Compute the value and weight of a binary solution.
 
+    Created for the SA, the ILS and the VNS (evaluation).
+
     The value is 0 when the weight exceeds the capacity.
 
     Parameters
@@ -34,6 +36,8 @@ def calcular_valor_peso(
 def avaliar(solucao: list[int], itens: list[Item], capacidade: int) -> int:
     """Return the value of a binary solution (0 if overweight).
 
+    Created for the SA, the ILS and the VNS (evaluation).
+
     Parameters
     ----------
     solucao : list of int
@@ -55,6 +59,8 @@ def avaliar_penalizada(
     solucao: list[int], itens: list[Item], capacidade: int
 ) -> int:
     """Return the value minus a penalty proportional to the excess weight.
+
+    Created for the Tabu Search (evaluation).
 
     ``f(s) = valor - α * max(0, peso - capacidade)``, with ``α`` equal to the sum
     of all values. With integer weights, an overweight solution scores at most 0,

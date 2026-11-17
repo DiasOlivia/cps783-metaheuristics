@@ -23,6 +23,8 @@ def reconectar(
 ) -> tuple[list[int] | None, float | None, int]:
     """Walk the path between two solutions and return its best intermediate one.
 
+    Created for the GRASP (path-relinking).
+
     At each step every move given by ``passos`` (each brings one attribute of the
     other end) is evaluated, and the best one is applied (path-relinking). The
     two ends are not candidates. ``'backward'`` starts from the better of the two
@@ -95,6 +97,8 @@ def atualizar_elite(
     distancia: Callable[[list[int], list[int]], int],
 ) -> bool:
     """Offer a solution to the elite pool, updating it in place.
+
+    Created for the GRASP (elite pool).
 
     While the pool is not full, any new solution enters. Afterwards, a solution
     enters if it beats the best of the pool, or if it beats the worst and its

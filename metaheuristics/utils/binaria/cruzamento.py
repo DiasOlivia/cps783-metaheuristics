@@ -22,6 +22,8 @@ def cruzamento_multiponto(
 ) -> tuple[list[int], list[int]]:
     """Exchange, alternately, the segments between the cut points.
 
+    Created for the Genetic Algorithm (crossover).
+
     A cut at ``c`` falls after the first ``c`` genes. The first segment stays,
     the second is exchanged between the parents, the third stays, and so on. The
     children may not fit in the knapsack.
@@ -65,6 +67,8 @@ def cruzamento_um_ponto(
 ) -> tuple[list[int], list[int]]:
     """Join the genes before a cut point of one parent to those after it of the other.
 
+    Created for the Genetic Algorithm (crossover).
+
     Parameters
     ----------
     pai1, pai2 : list of int
@@ -96,6 +100,8 @@ def cruzamento_uniforme(
     mascara: Sequence[int] | None = None,
 ) -> tuple[list[int], list[int]]:
     """Exchange the genes of the parents where a binary mask is 1.
+
+    Created for the Genetic Algorithm (crossover).
 
     Without a mask, each bit of the mask is drawn with probability 1/2, so each
     child takes each gene from either parent with the same chance.

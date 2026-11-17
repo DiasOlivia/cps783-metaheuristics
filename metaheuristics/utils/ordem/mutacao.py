@@ -13,6 +13,8 @@ def mutacao_insercao(
 ) -> list[int]:
     """Draw two items and move the second right after the first, ``k`` times.
 
+    Created for the Genetic Algorithm (mutation).
+
     Parameters
     ----------
     solucao : list of int
@@ -51,6 +53,8 @@ def mutacao_inversao(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Reverse the segment between two random points of the order, ``k`` times.
+
+    Created for the Genetic Algorithm (mutation).
 
     Parameters
     ----------

@@ -11,6 +11,8 @@ def busca_local_primeira_melhora(
 ) -> tuple[list[int], int]:
     """First-improvement local search swapping two positions of the order.
 
+    Created for the ILS and the VNS in the order representation (local search).
+
     Swaps are examined in a fixed order, ``(0, 1), (0, 2), ..., (n-2, n-1)``, and
     the first one that strictly improves the decoded value is applied. Each
     neighbor is decoded from scratch, so a pass costs ``O(n^3)``.

@@ -4,6 +4,8 @@ from metaheuristics.utils.instancia import Item
 def decodificar(solucao: list[int], itens: list[Item], capacidade: int) -> list[int]:
     """Turn an order of items into a binary solution by greedy insertion.
 
+    Created for the SA, the ILS and the VNS in the order representation (decoder).
+
     Items are visited in the given order and each one that still fits is added, so
     every order decodes to a feasible solution and many orders decode to the same.
 
@@ -32,6 +34,8 @@ def decodificar(solucao: list[int], itens: list[Item], capacidade: int) -> list[
 
 def avaliar(solucao: list[int], itens: list[Item], capacidade: int) -> int:
     """Return the value of the solution decoded from an order.
+
+    Created for the SA, the ILS and the VNS in the order representation (evaluation).
 
     Parameters
     ----------

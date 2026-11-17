@@ -7,6 +7,8 @@ def passos_para_guia(
 ) -> list[tuple[str, list[int]]]:
     """List the moves that bring one attribute of the guide into the solution.
 
+    Created for the GRASP (path-relinking).
+
     Each move flips one bit where the solution differs from the guide, so the
     number of moves is the Hamming distance (the symmetric difference of the
     selected items). Moves may lead to solutions that do not fit.

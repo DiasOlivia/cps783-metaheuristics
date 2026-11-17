@@ -10,6 +10,8 @@ def vizinhanca_flip(
 ) -> list[Vizinha]:
     """List every neighbor obtained by flipping one bit, feasible or not.
 
+    Created for the Tabu Search (neighborhood).
+
     Parameters
     ----------
     solucao : list of int
@@ -35,6 +37,8 @@ def vizinhanca_flip_troca(
     solucao: list[int], itens: list[Item], capacidade: int
 ) -> list[Vizinha]:
     """List the one-bit flips and the 1-for-1 swaps, feasible or not.
+
+    Created for the Tabu Search (neighborhood).
 
     These are the moves of the binary local searches, in the same order: first
     the flips by index, then each selected item swapped for each unselected one.

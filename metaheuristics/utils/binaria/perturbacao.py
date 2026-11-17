@@ -14,6 +14,8 @@ def perturbar(
 ) -> list[int]:
     """Flip ``k`` distinct random bits, then repair the capacity if needed.
 
+    Created for the ILS and the VNS (perturbation).
+
     The result is at Hamming distance ``k`` before the repair. If it is
     overweight, randomly chosen selected items are removed until it fits, which
     can change the final distance. The repair is a design choice for the knapsack.

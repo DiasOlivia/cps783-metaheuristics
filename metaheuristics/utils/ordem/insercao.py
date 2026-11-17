@@ -60,6 +60,8 @@ def insercao_aleatoria(
 ) -> list[int]:
     """Put each missing item back at a random position of the order.
 
+    Created for the ALNS (repair operator).
+
     Parameters
     ----------
     solucao : list of int
@@ -92,6 +94,8 @@ def insercao_gulosa(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Repeatedly insert the missing item at the position with the best value.
+
+    Created for the ALNS (repair operator).
 
     Every missing item is tried at every position, and the pair with the highest
     decoded value is applied; the values are recomputed after each insertion.
@@ -137,6 +141,8 @@ def insercao_arrependimento(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Repeatedly insert the missing item that would lose the most if postponed.
+
+    Created for the ALNS (repair operator).
 
     The regret of an item is the decoded value at its best position minus the
     value at its second best position. The item with the largest regret (ties:

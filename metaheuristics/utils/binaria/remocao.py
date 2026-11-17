@@ -34,6 +34,8 @@ def remocao_aleatoria(
 ) -> list[int]:
     """Take ``k`` random items out of the knapsack.
 
+    Created for the ALNS (destroy operator).
+
     Parameters
     ----------
     solucao : list of int
@@ -65,6 +67,8 @@ def remocao_pior(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Take out the ``k`` items with the lowest value-to-weight ratio.
+
+    Created for the ALNS (destroy operator).
 
     These items give the least value for the capacity they use. Ties keep the
     order of the indices, so the removal is deterministic.
@@ -100,6 +104,8 @@ def remocao_shaw(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Take out a random item and the ``k - 1`` items most similar to it.
+
+    Created for the ALNS (destroy operator).
 
     Two items are similar when their weights and values are close, measured by
     ``|Δpeso| / max_peso + |Δvalor| / max_valor`` over the instance. Similar items

@@ -5,6 +5,8 @@ from metaheuristics.utils.instancia import Item
 def reparar(solucao: list[int], itens: list[Item], capacidade: int) -> list[int]:
     """Make a binary solution fit, then fill it greedily (Chu and Beasley, 1998).
 
+    Created for the Genetic Algorithm (repair of the children).
+
     First the selected items are removed by non-decreasing value-to-weight ratio
     until the solution fits. Then the items outside are tried by non-increasing
     ratio, and each one that still fits is added. The result is feasible and no

@@ -13,6 +13,8 @@ def perturbar(
 ) -> list[int]:
     """Shuffle the items found at ``k`` random distinct positions of the order.
 
+    Created for the ILS and the VNS in the order representation (perturbation).
+
     Parameters
     ----------
     solucao : list of int

@@ -20,6 +20,8 @@ def insercao_aleatoria(
 ) -> list[int]:
     """Visit the items outside the knapsack in random order and add each that fits.
 
+    Created for the ALNS (repair operator).
+
     Parameters
     ----------
     solucao : list of int
@@ -55,6 +57,8 @@ def insercao_gulosa(
     debug: Depurador | None = None,
 ) -> list[int]:
     """Repeatedly add the item outside that fits and increases the value the most.
+
+    Created for the ALNS (repair operator).
 
     After each insertion the remaining capacity shrinks, so the items that still
     fit are recomputed. Ties keep the lowest index.

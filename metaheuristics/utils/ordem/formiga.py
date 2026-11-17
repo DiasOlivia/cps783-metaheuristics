@@ -14,6 +14,8 @@ def construtiva_formiga(
 ) -> list[int]:
     """Build an order the way an ant does, with pheromone per transition.
 
+    Created for the ACO (ant construction).
+
     As in the traveling salesman, the pheromone sits on the move from the last
     chosen item ``i`` to the next one ``j``, the component ``(i, j)``; the first
     item comes from ``None``. While some item fits, the next one is drawn among
@@ -61,6 +63,8 @@ def trilha(
     solucao: list[int], itens: list[Item], capacidade: int
 ) -> list[tuple[int | None, int]]:
     """Return the components of an order: the transitions between packed items.
+
+    Created for the ACO (pheromone deposit).
 
     The order is decoded, and the items that go into the knapsack, in the order
     they appear, form the path ``None → a → b → ...``.

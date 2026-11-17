@@ -63,6 +63,8 @@ def construtiva_formiga(
 ) -> list[int]:
     """Build a solution the way an ant does, with pheromone per item.
 
+    Created for the ACO (ant construction).
+
     While some item fits, the ant draws the next one among those that fit with
     probability ``τ_j^α η_j^β / Σ τ_l^α η_l^β``, where ``τ_j`` is the pheromone
     of item ``j`` and ``η_j`` its value-to-weight ratio (the heuristic
@@ -100,6 +102,8 @@ def construtiva_formiga(
 
 def trilha(solucao: list[int], itens: list[Item], capacidade: int) -> list[int]:
     """Return the components of a binary solution: the items in the knapsack.
+
+    Created for the ACO (pheromone deposit).
 
     Parameters
     ----------

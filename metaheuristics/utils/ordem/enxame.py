@@ -6,6 +6,8 @@ def coordenadas(
 ) -> list[float]:
     """Return the position of an order particle: one key per item.
 
+    Created for the PSO (particle position).
+
     The key of an item is its place in the order, counted from the end: ``n`` for
     the first item and ``1`` for the last, so a higher key means earlier.
 
@@ -38,6 +40,8 @@ def mover_chaves(
     velocidade: list[float],
 ) -> list[int]:
     """Fly an order particle: add the velocity to the keys and sort by them.
+
+    Created for the PSO (flight).
 
     A velocity of ``+3`` moves an item about three places towards the front
     (random keys). Ties keep the current order.

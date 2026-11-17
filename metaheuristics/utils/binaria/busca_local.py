@@ -85,6 +85,8 @@ def busca_local_melhor_melhora(
 ) -> tuple[list[int], int]:
     """Best-improvement local search over feasible 1-flip and 1-for-1 swap moves.
 
+    Created for the ILS and the VNS (local search).
+
     Each pass examines every move and applies the one with the largest strictly
     better value; it stops at a local optimum for this neighborhood.
 
@@ -114,6 +116,9 @@ def busca_local_primeira_melhora(
     debug: Depurador | None = None,
 ) -> tuple[list[int], int]:
     """First-improvement local search over feasible 1-flip and 1-for-1 swap moves.
+
+    Created for the ILS and the VNS, as an alternative to the best-improvement local
+    search.
 
     Moves are examined in a fixed order (flips by index, then swaps) and the first
     strictly better one is applied right away.
