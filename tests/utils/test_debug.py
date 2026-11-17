@@ -5,6 +5,7 @@ import pytest
 from metaheuristics.adaptive_large_neighborhood_search import (
     adaptive_large_neighborhood_search_mochila,
 )
+from metaheuristics.genetic_algorithm import genetic_algorithm_mochila
 from metaheuristics.grasp import grasp_mochila
 from metaheuristics.iterated_local_search import iterated_local_search_mochila
 from metaheuristics.particle_swarm_optimization import (
@@ -151,6 +152,28 @@ def test_depurador__pso_desenha_o_enxame(tmp_path):
     nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
     assert sem_debug == com_debug
     assert sum("enxame" in nome for nome in nomes) == 3  # iterações 0, 2 e 4
+
+
+def test_depurador__ag_desenha_a_populacao(tmp_path):
+    itens, capacidade = _instancia()
+    random.seed(5)
+    sem_debug = genetic_algorithm_mochila(
+        itens, capacidade, tamanho_populacao=6, max_geracoes=4, prob_mutacao=0.5
+    )
+    debug = Depurador(itens, capacidade, save=True, a_cada=2, pasta=tmp_path)
+    random.seed(5)
+    com_debug = genetic_algorithm_mochila(
+        itens,
+        capacidade,
+        tamanho_populacao=6,
+        max_geracoes=4,
+        prob_mutacao=0.5,
+        debug=debug,
+    )
+    nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
+    assert sem_debug == com_debug
+    assert sum("populacao" in nome for nome in nomes) == 3  # gerações 0, 2 e 4
+    assert any("movimento" in nome for nome in nomes)  # a mutação
 
 
 def test_depurador__exige_show_ou_save():

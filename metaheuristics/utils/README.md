@@ -2,7 +2,7 @@
 
 > Material de estudo — **CPS783: Metaheurísticas em Otimização Combinatória (2026/3)**.
 
-Esta pasta separa o SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP e o PSO em **peças trocáveis**. Os sete algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
+Esta pasta separa o SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP, o PSO e o AG em **peças trocáveis**. Os oito algoritmos são esqueletos que recebem as peças como parâmetro, então dá para trocar uma parte de um pela de outro (a aceitação do SA no ILS, a busca local no SA, a construtiva gulosa no VNS, a perturbação como remoção da ALNS, o movimento como mutação do AG...) sem editar o código do esquema. Todos devolvem o mesmo histórico, usam os mesmos gráficos e aceitam o mesmo depurador visual.
 
 Para experimentar, use o [notebook do laboratório](../laboratorio.ipynb). Os conceitos por trás (representação, heurística × metaheurística) estão no [README de conceitos](../README.md).
 
@@ -13,6 +13,7 @@ utils/
 ├── instancia.py        Item, gerar_instancia_aleatoria, programacao_dinamica
 ├── aceitacao.py        aceita_melhora, temperaturas, metropolis
 ├── reconexao.py        reconectar, atualizar_elite (path-relinking e pool elite)
+├── selecao.py          selecao_roleta, selecao_ranking, selecao_torneio, selecao_classes
 ├── historico.py        novo_historico, registrar
 ├── experimento.py      rodar_sementes, resumir, tabela
 ├── plot.py             plotar_historico, plotar_comparacao
@@ -27,7 +28,9 @@ utils/
 │   ├── insercao.py     insercao_aleatoria, insercao_gulosa
 │   ├── vizinhanca.py   vizinhanca_flip, vizinhanca_flip_troca
 │   ├── reconexao.py    passos_para_guia
-│   └── enxame.py       coordenadas, mover_sigmoide
+│   ├── enxame.py       coordenadas, mover_sigmoide
+│   ├── cruzamento.py   cruzamento_um_ponto, cruzamento_multiponto, cruzamento_uniforme
+│   └── reparo.py       reparar
 └── ordem/              peças da representação por ordem
     ├── avaliacao.py    avaliar, decodificar
     ├── construtiva.py  construtiva_aleatoria, construtiva_gulosa, construtiva_gulosa_aleatoria
@@ -36,7 +39,11 @@ utils/
     ├── busca_local.py  busca_local_primeira_melhora
     ├── remocao.py      remocao_aleatoria, remocao_pior, remocao_shaw
     ├── insercao.py     insercao_aleatoria, insercao_gulosa, insercao_arrependimento
-    └── vizinhanca.py   vizinhanca_troca
+    ├── vizinhanca.py   vizinhanca_troca
+    ├── reconexao.py    passos_para_guia
+    ├── enxame.py       coordenadas, mover_chaves
+    ├── cruzamento.py   cruzamento_opx, cruzamento_lox, cruzamento_pmx
+    └── mutacao.py      mutacao_insercao, mutacao_inversao
 ```
 
 O que fica na raiz de `utils/` vale para as duas representações. O que fica em `binaria/` e `ordem/` só funciona com soluções daquela representação.
@@ -60,7 +67,7 @@ A mesma solução (quais itens estão na mochila) pode ser escrita de dois jeito
 | Viabilidade | pode passar da capacidade: `binaria.calcular_valor_peso` devolve valor 0 e a perturbação repara | sempre viável |
 | Redundância | cada solução é um vetor só | `[3, 0, 6, 5, 4, 2, 1]` dá a mesma solução |
 
-**Regra:** numa execução, todas as peças de `binaria/` ou de `ordem/` (avaliar, construtiva, movimento, perturbação, busca local, remoção, inserção) precisam ser da mesma representação. A aceitação, o histórico, os gráficos e o depurador servem para as duas.
+**Regra:** numa execução, todas as peças de `binaria/` ou de `ordem/` (avaliar, construtiva, movimento, perturbação, busca local, remoção, inserção, cruzamento, mutação, reparo) precisam ser da mesma representação. A aceitação, a seleção, o histórico, os gráficos e o depurador servem para as duas.
 
 ## 3. Catálogo de peças
 
@@ -78,6 +85,10 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 | reconexão (GRASP) | `(solucao, itens, capacidade, guia) -> [(rotulo, vizinha)]` | `binaria.passos_para_guia` (inverte um bit em que difere da guia) | `ordem.passos_para_guia` (coloca na posição o item da guia) |
 | coordenadas (PSO) | `(solucao, itens, capacidade) -> [float]` | `binaria.coordenadas` (os bits) | `ordem.coordenadas` (a posição de cada item na ordem) |
 | voo (PSO) | `(solucao, itens, capacidade, velocidade) -> solucao` | `binaria.mover_sigmoide` (cada bit é 1 com probabilidade sigmoide(v)) | `ordem.mover_chaves` (soma a velocidade às chaves e reordena) |
+| cruzamento (AG) | `(pai1, pai2, itens, capacidade) -> (filho1, filho2)` | `binaria.cruzamento_um_ponto`, `binaria.cruzamento_multiponto`, `binaria.cruzamento_uniforme` (máscara) | `ordem.cruzamento_opx`, `ordem.cruzamento_lox`, `ordem.cruzamento_pmx` |
+| mutação (AG) | o mesmo do movimento | `binaria.gerar_vizinho` | `ordem.gerar_vizinho` (troca), `ordem.mutacao_insercao`, `ordem.mutacao_inversao`, `ordem.perturbar` |
+| reparo (AG) | `(solucao, itens, capacidade) -> solucao` | `binaria.reparar` (tira os de pior densidade até caber e completa pelos de melhor) | — (`reparo=None`: toda ordem é viável) |
+| seleção (AG) | `(valores, quantidade) -> [índices]` | `selecao_roleta`, `selecao_ranking`, `selecao_torneio`, `selecao_classes` | (as mesmas) |
 | vizinhança (Busca Tabu) | `(solucao, itens, capacidade) -> [(rotulo, itens_alterados, vizinha)]` | `binaria.vizinhanca_flip` (inverte um bit); `binaria.vizinhanca_flip_troca` (+ troca 1-por-1) | `ordem.vizinhanca_troca` (troca duas posições) |
 | aceitação | `(delta, iteracao) -> bool` | `aceita_melhora`; `metropolis(temperaturas(T0, Tmin, α), iteracoes_por_temperatura)` | (as mesmas) |
 
@@ -88,6 +99,8 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 - A vizinhança lista **todas** as vizinhas, inclusive as que não cabem, com os itens que cada movimento altera: são eles que viram tabu. A `binaria.vizinhanca_flip_troca` tem os mesmos movimentos das buscas locais binárias, na mesma ordem.
 - A `construtiva_gulosa_aleatoria` aceita também `alfa` (0 = gulosa, 1 = aleatória entre os que cabem) e `vies` (o sorteio na RCL). O GRASP a chama com o α da iteração; os outros esquemas, só com `(itens, capacidade)`, usam α = 0,3.
 - No PSO, as coordenadas transformam a solução nos números da equação da velocidade, e o voo aplica a velocidade. A posição de cada partícula continua sendo uma solução comum, então as outras peças servem para o PSO.
+- No AG, a mutação tem o encaixe do movimento, então qualquer movimento ou perturbação serve de mutação. Os cruzamentos aceitam os pontos de corte (`corte=`, `cortes=`) ou a máscara (`mascara=`) para reproduzir os exemplos dos slides; sem eles, sorteiam. A seleção não depende da representação, por isso fica em `selecao.py`, na raiz; para mudar o `q` do torneio ou as frações das classes, use `functools.partial`.
+- O cruzamento binário não olha a capacidade: metade dos filhos não cabe. O `binaria.reparar` (Chu e Beasley, 1998) os torna viáveis e completa a mochila de forma gulosa. Na ordem, o decodificador já faz esse papel, então o reparo é `None`.
 - A reconexão lista os passos que trazem um atributo de uma solução guia. O caminho e o pool elite ficam em `reconexao.py`, na raiz, porque não dependem da representação.
 - Com a `binaria.avaliar_penalizada`, uma solução que não cabe vale no máximo 0, então nunca supera uma viável. Ela encaixa em qualquer esquema.
 - A `metropolis` guarda a última decisão em `aceitar.ultimo` (temperatura, chance e sorteio), que o depurador mostra.
@@ -96,7 +109,7 @@ Peças com o mesmo **encaixe** e a mesma representação são trocáveis entre s
 
 ## 4. Os esquemas e onde as peças entram
 
-SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. A Busca Tabu é, ela mesma, uma busca local: não sorteia vizinhas, examina a vizinhança inteira e vai para a melhor vizinha admissível, mesmo que piore. O GRASP recomeça a cada iteração: construção gulosa aleatória → busca local → path-relinking com uma solução elite. O PSO move um enxame: cada partícula voa com uma velocidade atraída pela sua melhor posição e pela melhor do enxame. O melhor resultado é guardado à parte do atual.
+SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → laço (movimento ou perturbação → [busca local] → aceitação)**. Na ALNS, o movimento é uma remoção seguida de uma inserção, sorteadas por roleta. A Busca Tabu é, ela mesma, uma busca local: não sorteia vizinhas, examina a vizinhança inteira e vai para a melhor vizinha admissível, mesmo que piore. O GRASP recomeça a cada iteração: construção gulosa aleatória → busca local → path-relinking com uma solução elite. O PSO move um enxame: cada partícula voa com uma velocidade atraída pela sua melhor posição e pela melhor do enxame. O AG evolui uma população: seleciona pais, cruza, muta, repara os filhos e escolhe os sobreviventes, mantendo a elite. O melhor resultado é guardado à parte do atual.
 
 | | construtiva | movimento / perturbação | busca local | aceitação | regra própria |
 |---|---|---|---|---|---|
@@ -106,6 +119,7 @@ SA, ILS, VNS e ALNS seguem a mesma forma: **construtiva → [busca local] → la
 | ALNS | `binaria.construtiva_aleatoria` | `remocoes=` (aleatória, pior, Shaw) e `insercoes=` (aleatória, gulosa), sorteadas por roleta (k = q sorteado) | `None` | `None` = Metropolis, uma iteração por temperatura | piora só se a solução for nova; pesos dos operadores atualizados a cada segmento |
 | BT | `binaria.construtiva_aleatoria` | `vizinhanca=binaria.vizinhanca_flip`, examinada inteira | — | vai sempre para a melhor vizinha admissível; `avaliar=binaria.avaliar_penalizada` | lista tabu (vetor de prazo), aspiração por objetivo e por default; para após `max_sem_melhora` iterações sem melhora |
 | GRASP | `binaria.construtiva_gulosa_aleatoria` (α = 0,3), a cada iteração | `reconexao=binaria.passos_para_guia` (path-relinking com o pool elite; `None` = GRASP puro) | `binaria.busca_local_primeira_melhora` | — (multi-start) | α fixo ou reativo; hashing das construções; direções do PR |
+| AG | `binaria.construtiva_aleatoria` (uma por indivíduo) | `cruzamento=binaria.cruzamento_uniforme`; `mutacao=binaria.gerar_vizinho` (k = `intensidade_mutacao`); `reparo=binaria.reparar` | `None`; se houver, roda em cada indivíduo novo, depois do reparo | — (seleção dos sobreviventes) | seleção dos pais e dos sobreviventes por roleta; elite de `tamanho_elite` |
 | PSO | `binaria.construtiva_aleatoria` (uma por partícula) | `mover=binaria.mover_sigmoide`, com `coordenadas=binaria.coordenadas` | `None`; se houver, roda na partícula que melhora o próprio pbest | — (a partícula sempre voa); `avaliar=binaria.avaliar_penalizada` | velocidade da equação (1), limitada a `vmax`; inércia fixa ou decrescente |
 
 Os valores da tabela são os padrões: sem passar nenhuma peça, SA, ILS e VNS fazem exatamente o que faziam antes, com os mesmos resultados para a mesma semente. Todos recebem também `avaliar` (padrão `binaria.avaliar`; na BT e no PSO, `binaria.avaliar_penalizada`) e `debug`.
@@ -162,11 +176,11 @@ Todo esquema devolve `(melhor_solucao, historico)`. O histórico é um dicionár
 | `valor_atual` | valor da solução corrente depois da aceitação |
 | `melhor_valor` | melhor valor encontrado até a iteração |
 | `avaliacoes` | soluções avaliadas, acumuladas: cada candidato conta 1, e a busca local soma as vizinhas que examinou |
-| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS), `tamanho_tabu` (BT), `alfa` (GRASP), `inercia` (PSO) | extras de cada esquema |
+| `temperatura` (SA e ALNS), `k` (VNS), `peso <operador>` (ALNS), `tamanho_tabu` (BT), `alfa` (GRASP), `inercia` (PSO), `distintos` (AG) | extras de cada esquema |
 
-Dois esquemas leem as chaves de outro jeito, porque não têm uma única solução corrente. No **GRASP**, `valor_candidato` é a solução construída, `valor_atual` é a solução depois da busca local e do path-relinking, e o histórico começa na iteração 1. No **PSO**, `valor_candidato` é a média do enxame, e `valor_atual`, a melhor partícula da iteração.
+Dois esquemas leem as chaves de outro jeito, porque não têm uma única solução corrente. No **GRASP**, `valor_candidato` é a solução construída, `valor_atual` é a solução depois da busca local e do path-relinking, e o histórico começa na iteração 1. No **PSO**, `valor_candidato` é a média do enxame, e `valor_atual`, a melhor partícula da iteração. No **AG**, o mesmo vale para a população de cada geração, e `distintos` conta os indivíduos diferentes (a diversidade).
 
-**Compare esquemas pelas avaliações, não pelas iterações.** Uma iteração do SA avalia 1 vizinho; uma do ILS ou do VNS roda uma busca local inteira, que pode avaliar centenas; uma do PSO avalia uma solução por partícula.
+**Compare esquemas pelas avaliações, não pelas iterações.** Uma iteração do SA avalia 1 vizinho; uma do ILS ou do VNS roda uma busca local inteira, que pode avaliar centenas; uma do PSO avalia uma solução por partícula; uma geração do AG avalia cada filho.
 
 ## 6. Instâncias
 
@@ -212,7 +226,7 @@ Cada figura tem três painéis:
 
 ## 9. Como montar uma mistura
 
-1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila`, `adaptive_large_neighborhood_search_mochila`, `tabu_search_mochila`, `grasp_mochila` ou `particle_swarm_optimization_mochila`.
+1. Escolha o esquema: `simulated_annealing_mochila`, `iterated_local_search_mochila`, `variable_neighborhood_search_mochila`, `adaptive_large_neighborhood_search_mochila`, `tabu_search_mochila`, `grasp_mochila`, `particle_swarm_optimization_mochila` ou `genetic_algorithm_mochila`.
 2. Troque as peças passando-as como parâmetro, todas da mesma representação.
 3. Rode em várias sementes com `rodar_sementes`, resuma com `resumir` e compare com a linha de base em `tabela` e `plotar_comparacao`.
 
@@ -220,8 +234,8 @@ A última seção do [notebook](../laboratorio.ipynb) traz esse molde pronto par
 
 ## 10. Próximas metaheurísticas
 
-A estrutura foi pensada para receber o algoritmo genético e outras extensões:
+A estrutura recebe novas metaheurísticas e extensões do mesmo jeito:
 
-- cada uma ganha sua pasta de esqueleto, como `simulated_annealing/`;
-- as peças novas entram na subpasta da representação: o genético precisa de cruzamento, mutação e seleção; o path-relinking na Busca Tabu pode reaproveitar `reconectar` e `atualizar_elite`;
-- o histórico aceita chaves extras (por exemplo, a média da população no genético).
+- cada uma ganha sua pasta de esqueleto, como `genetic_algorithm/`;
+- as peças novas entram na subpasta da representação, ou na raiz de `utils/` quando não dependem dela, como a seleção; o path-relinking na Busca Tabu pode reaproveitar `reconectar` e `atualizar_elite`;
+- o histórico aceita chaves extras, como os `distintos` do AG.

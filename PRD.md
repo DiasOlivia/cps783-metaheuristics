@@ -1,63 +1,75 @@
-# PRD — PSO (Enxame de Partículas) no laboratório de metaheurísticas (Mochila 0-1)
+# PRD — Algoritmo Genético no laboratório de metaheurísticas (Mochila 0-1)
 
 ## Contexto
 
-A aula do Tema 10 apresenta a **Otimização por Enxame de Partículas (PSO)**, de Kennedy e Eberhart (1995). Um enxame de partículas "voa" pelo espaço de busca, e cada partícula ajusta a sua velocidade pela própria melhor posição (cognição individual) e pela melhor posição do enxame (aprendizado social).
+A aula do Tema 11 apresenta os **Algoritmos Genéticos** (Holland, 1975; Goldberg, 1989). Uma população de indivíduos evolui por gerações: os mais aptos têm mais chance de se reproduzir (seleção), os pais trocam genes (cruzamento), alguns indivíduos sofrem pequenas alterações (mutação), e os melhores passam intactos para a geração seguinte (elitismo).
 
-O PSO dos slides é **contínuo** (`x ← x + v`), e a mochila é discreta. O repositório já separa SA, ILS, VNS, ALNS, Busca Tabu e GRASP em peças trocáveis (`metaheuristics/utils/`), com histórico, gráficos e depurador comuns. Esta entrega adapta o PSO às duas representações e o coloca no mesmo padrão. O PRD anterior, do GRASP, está no histórico do git, e as decisões dele continuam valendo, registradas em [`utils/README.md`](metaheuristics/utils/README.md) e no [README do GRASP](metaheuristics/grasp/README.md).
+O repositório já separa SA, ILS, VNS, ALNS, Busca Tabu, GRASP e PSO em peças trocáveis (`metaheuristics/utils/`), com histórico, gráficos e depurador comuns. Esta entrega coloca o AG no mesmo padrão. O PRD anterior, do PSO, está no histórico do git, e as decisões dele continuam valendo, registradas em [`utils/README.md`](metaheuristics/utils/README.md) e no [README do PSO](metaheuristics/particle_swarm_optimization/README.md).
 
 ## Objetivo
 
-Implementar o PSO como mais um esqueleto que recebe peças, com a velocidade da equação (1) dos slides e um voo próprio de cada representação, sem mudar o que já existe.
+Implementar o AG do slide 9 como mais um esqueleto que recebe peças, com os métodos de seleção e os operadores de cruzamento e mutação dos slides nas duas representações, sem mudar o que já existe.
+
+## Medições que embasaram as decisões
+
+Protótipo na instância correlacionada de 50 itens (a da linha de base do notebook), 10 sementes, população 50, 100 gerações (≈ 4.300 avaliações):
+
+| Configuração | Gap médio | Ótimos |
+|---|---|---|
+| Binária, uniforme, só avaliação penalizada | ~2,1% | 0/10 |
+| Binária, uniforme, reparo guloso, roleta | 0,00% | 10/10 (comum: 0,02%, 7/10) |
+| Binária com reparo, sem cruzamento | 2,23% | 0/10 |
+| Ordem, LOX, roleta | 0,91% | 0/10 (comum: 2,84%) |
+
+Metade dos filhos do cruzamento binário passa da capacidade. Com torneio nas duas seleções, a população colapsa em 1 ou 2 indivíduos distintos; com roleta, ficam de 3 a 7.
 
 ## Decisões
 
 | Tema | Decisão |
 |---|---|
-| Esquema | `particle_swarm_optimization_mochila` em `metaheuristics/particle_swarm_optimization/`, seguindo o nome em inglês dos outros |
-| Velocidade | a equação (1) do slide 13, por item: `v ← w·v + c1·r1·(pbest − x) + c2·r2·(gbest − x)`, com `r1, r2 ~ U(0, 1)` sorteados por dimensão e `v` limitada a `[−vmax, vmax]` (slide 15). As velocidades iniciais são sorteadas em `[−vmax, vmax]` (slide 18) |
-| Binária | **PSO binário** (Kennedy e Eberhart, 1997): a posição é o vetor de bits, e o voo sorteia cada bit como 1 com probabilidade `sigmoide(v)`. Com `vmax = 4`, essa chance fica entre 1,8% e 98,2%, o que explica o "vmax = 4 ou 5" do slide 15 |
-| Ordem | **chaves por posição**: a coordenada de cada item é a posição dele na ordem (`n` para o primeiro, `1` para o último); o voo soma `v` às chaves e reordena por elas. `vmax = 4` é andar até 4 posições por iteração |
-| Posição = solução | nas duas representações, a posição de cada partícula é uma solução comum, então construtivas, avaliação, buscas locais, `Depurador` e gráficos funcionam sem mudança |
-| Inviabilidade | avaliação padrão `binaria.avaliar_penalizada` (Busca Tabu): uma partícula que não cabe vale no máximo 0. O enxame começa viável (`construtiva=binaria.construtiva_aleatoria`, a "inicialização aleatória" do slide 18), então pbest e gbest são sempre viáveis |
-| Parâmetros | os padrões de **Kennedy e Eberhart** (o "*" do slide 14): `inercia=1`, `c1=2`, `c2=2`, `vmax=4`. Os "artigos mais recentes" (0,5; 1,5; 1,5) foram calibrados para o PSO contínuo: na mochila, w = 0,5 encolhe as velocidades e deixa o voo quase aleatório (11,5% de gap contra 0,5% na instância comum de 50 itens). O README mostra a comparação e as faixas `[0,5; 1,5]` e `[1,5; 2,5]` |
-| Inércia decrescente | `inercia` aceita um número (fixo) ou um par `(inicial, final)`: `wᵗ` cai linearmente ao longo das iterações (slides 13 e 16: começa diversificando e termina intensificando) |
-| Busca local | opcional (`busca_local=None`), aplicada à partícula que **melhora o próprio pbest** (PSO "memético"): o pbest é sempre viável, e as buscas locais binárias exigem solução viável |
-| Atualização | como no slide 18: partícula a partícula, o pbest e o gbest são atualizados assim que ela voa |
-| Parada | `max_iteracoes` |
-| Histórico | por iteração, a partir da 0 (o enxame inicial): `valor_candidato` = **média do enxame**, `valor_atual` = **melhor partícula da iteração**, `melhor_valor` = gbest, `avaliacoes` (uma por partícula, mais a busca local) e o extra `inercia` |
-| Depurador | sem mudança: cada iteração gera um passo "enxame", com todas as partículas no plano peso × valor, e a figura da iteração |
-| Reaproveitamento | avaliação penalizada, construtivas, buscas locais, histórico, gráficos, experimento e depurador |
+| Esquema | `genetic_algorithm_mochila` em `metaheuristics/genetic_algorithm/`, seguindo o nome em inglês dos outros |
+| Geração (slide 9) | **Cruzamento:** `tamanho_populacao // 2` tentativas; cada uma, com probabilidade `prob_cruzamento`, seleciona um par na população e gera dois filhos. **Mutação:** `tamanho_populacao` tentativas; cada uma, com probabilidade `prob_mutacao`, seleciona um indivíduo e gera um filho assexuado. **Atualização:** mantém os `tamanho_elite` melhores e seleciona os outros na população somada aos filhos, com repetição (slide 17) |
+| Seleção | encaixe novo `(valores, quantidade) -> [índices]`, na raiz de `utils/`, porque não depende da representação: roleta, ranking, torneio e classes. Padrão: **roleta** nos pais e nos sobreviventes. A roleta usa `max(0, valor)`; com tudo zerado, o sorteio é uniforme |
+| Inviabilidade | **reparo guloso, ligado**: `binaria.reparar` (Chu e Beasley, 1998) tira os itens de pior densidade até caber e completa pelos de melhor densidade. Roda em todo indivíduo novo. Na ordem, `reparo=None`, porque o decodificador já garante viabilidade. Avaliação padrão `binaria.avaliar`; sem reparo, use `binaria.avaliar_penalizada` |
+| Cruzamento | binária: um ponto, multiponto e uniforme (padrão); ordem: OPX, LOX (sugerido) e PMX. Os pontos de corte e a máscara são opcionais (sorteados quando omitidos) e reproduzem os exemplos dos slides 25 a 32 |
+| Mutação | reaproveita o encaixe do movimento: `binaria.gerar_vizinho` (padrão: k flips viáveis, o "um ponto" e "múltiplos pontos" do slide 34), `ordem.gerar_vizinho` (troca) e `ordem.perturbar` (perturbação). Novas na ordem: `ordem.mutacao_insercao` e `ordem.mutacao_inversao` (slides 35 e 36) |
+| Parâmetros | `tamanho_populacao=50`, `max_geracoes=100`, `prob_cruzamento=0.8`, `prob_mutacao=0.05` (o "≤ 5%" dos slides 34 a 36), `intensidade_mutacao=1`, `tamanho_elite=2` |
+| Busca local | opcional (`busca_local=None`), em cada indivíduo novo, depois do reparo (AG memético) |
+| Parada | `max_geracoes` |
+| Histórico | por geração, a partir da 0 (a população inicial), no formato do PSO: `valor_candidato` = média da população, `valor_atual` = melhor da população, `melhor_valor` = melhor de todos, `avaliacoes` (uma por indivíduo novo, mais a busca local; o reparo não conta) e o extra `distintos` (indivíduos diferentes na população), que mostra a perda de diversidade |
+| Depurador | sem mudança: cada geração gera um passo "população", com todos os indivíduos no plano peso × valor, e a figura da geração |
+| Reaproveitamento | movimentos como mutação, avaliações, construtivas, buscas locais, histórico, gráficos, experimento e depurador |
 
 ### Nomes das peças
 
-| Encaixe | Binária | Ordem |
-|---|---|---|
-| coordenadas `(solucao, itens, capacidade) -> [float]` | `binaria.coordenadas`: os bits | `ordem.coordenadas`: a posição de cada item na ordem |
-| voo `(solucao, itens, capacidade, velocidade) -> solucao` | `binaria.mover_sigmoide`: cada bit é 1 com probabilidade `sigmoide(v)` | `ordem.mover_chaves`: reordena pelas chaves `coordenadas + v` |
+| Encaixe | Raiz de `utils/` | Binária | Ordem |
+|---|---|---|---|
+| seleção `(valores, quantidade) -> [índices]` | `selecao_roleta`, `selecao_ranking`, `selecao_torneio` (`q=2`), `selecao_classes` (`melhores=0.2`, `piores=0.2`) | — | — |
+| cruzamento `(pai1, pai2, itens, capacidade) -> (filho1, filho2)` | — | `cruzamento_um_ponto`, `cruzamento_multiponto`, `cruzamento_uniforme` | `cruzamento_opx`, `cruzamento_lox`, `cruzamento_pmx` |
+| reparo `(solucao, itens, capacidade) -> solucao` | — | `reparar` | — |
+| mutação (encaixe do movimento) | — | `gerar_vizinho` (já existia) | `mutacao_insercao`, `mutacao_inversao`; `gerar_vizinho` e `perturbar` (já existiam) |
 
 ## Escopo
 
-- Esqueleto do PSO com README de teoria (slides do Tema 10), a adaptação para a mochila, parâmetros, histórico e questões de revisão.
-- Peças `enxame.py` em `utils/binaria/` e `utils/ordem/`, exportadas pelos `__init__.py`.
-- Testes de cada peça nova e do esquema.
+- Esqueleto do AG com README de teoria (slides do Tema 11), a adaptação para a mochila, parâmetros, histórico e questões de revisão.
+- Peças de seleção, cruzamento, reparo e mutação, exportadas pelos `__init__.py`.
+- Testes de cada peça nova (com os exemplos dos slides) e do esquema.
 - READMEs (raiz, conceitos e `utils/`) e notebook do laboratório atualizados.
 
 ## Fora do escopo
 
-- c1 e c2 adaptativos (slide 15): o slide não diz quais estatísticas usar, então a regra seria nossa.
-- Topologias de vizinhança (lbest) e outras variantes que não estão nos slides.
+- Variantes que não estão nos slides: eliminação de duplicados, ranking não linear, probabilidades de cruzamento e mutação adaptativas.
 
 ## Critérios de aceite
 
-- O PSO aceita qualquer avaliação, construtiva, coordenadas, voo e busca local compatíveis passados por parâmetro, sem editar o esquema.
-- A velocidade nunca passa de `vmax`.
+- O AG aceita qualquer avaliação, construtiva, cruzamento, mutação, reparo, seleção e busca local compatíveis passados por parâmetro, sem editar o esquema.
+- Com elitismo, o melhor da população nunca piora de uma geração para a outra, e o melhor indivíduo avaliado é guardado à parte (a elite sai da população atual, como no slide 9, então um filho melhor que todos pode não sobreviver).
 - O histórico segue o formato comum, e `plotar_historico` funciona sem mudanças.
 - `pytest` passa a partir da raiz, e os testes que já existiam não foram alterados.
 - O notebook roda do começo ao fim sem erro.
 
 ## Próximos passos
 
+- **AG:** eliminação de duplicados e probabilidades adaptativas.
 - **PSO:** c1 e c2 adaptativos e topologias de vizinhança.
 - **Path-Relinking na Busca Tabu:** `reconectar` e `atualizar_elite` já são independentes do esquema.
-- **Algoritmo genético:** esqueleto populacional, com peças novas por representação (cruzamento, mutação, seleção).

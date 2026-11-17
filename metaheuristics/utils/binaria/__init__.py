@@ -6,6 +6,9 @@ from metaheuristics.utils.binaria.busca_local import busca_local_primeira_melhor
 from metaheuristics.utils.binaria.construtiva import construtiva_aleatoria
 from metaheuristics.utils.binaria.construtiva import construtiva_gulosa
 from metaheuristics.utils.binaria.construtiva import construtiva_gulosa_aleatoria
+from metaheuristics.utils.binaria.cruzamento import cruzamento_multiponto
+from metaheuristics.utils.binaria.cruzamento import cruzamento_um_ponto
+from metaheuristics.utils.binaria.cruzamento import cruzamento_uniforme
 from metaheuristics.utils.binaria.enxame import coordenadas
 from metaheuristics.utils.binaria.enxame import mover_sigmoide
 from metaheuristics.utils.binaria.insercao import insercao_aleatoria
@@ -16,6 +19,7 @@ from metaheuristics.utils.binaria.reconexao import passos_para_guia
 from metaheuristics.utils.binaria.remocao import remocao_aleatoria
 from metaheuristics.utils.binaria.remocao import remocao_pior
 from metaheuristics.utils.binaria.remocao import remocao_shaw
+from metaheuristics.utils.binaria.reparo import reparar
 from metaheuristics.utils.binaria.vizinhanca import vizinhanca_flip
 from metaheuristics.utils.binaria.vizinhanca import vizinhanca_flip_troca
 
@@ -29,6 +33,9 @@ __all__ = [
     "construtiva_gulosa",
     "construtiva_gulosa_aleatoria",
     "coordenadas",
+    "cruzamento_multiponto",
+    "cruzamento_um_ponto",
+    "cruzamento_uniforme",
     "gerar_vizinho",
     "insercao_aleatoria",
     "insercao_gulosa",
@@ -38,6 +45,7 @@ __all__ = [
     "remocao_aleatoria",
     "remocao_pior",
     "remocao_shaw",
+    "reparar",
     "vizinhanca_flip",
     "vizinhanca_flip_troca",
 ]

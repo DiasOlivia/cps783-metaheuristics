@@ -74,7 +74,7 @@ O algoritmo cria e modifica essas anotações o tempo todo, então a representa�
 
 A segunda forma já aparece no repositório: `binaria.construtiva_aleatoria` sorteia uma ordem e a decodifica, e a [mochila gulosa](guloso/mochila/README.md) escolhe a ordem por peso, valor ou densidade.
 
-As duas estão implementadas como peças em [`utils/`](utils/README.md): `utils/binaria/` e `utils/ordem/`. O SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP e o PSO aceitam qualquer uma delas, e o [notebook do laboratório](laboratorio.ipynb) permite compará-las.
+As duas estão implementadas como peças em [`utils/`](utils/README.md): `utils/binaria/` e `utils/ordem/`. O SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP, o PSO e o AG aceitam qualquer uma delas, e o [notebook do laboratório](laboratorio.ipynb) permite compará-las.
 
 | | Representação direta | Representação por ordem |
 |---|---|---|
@@ -106,7 +106,7 @@ instância ─▶ [heurística construtiva] ─▶ 1ª solução ─▶ [busca l
 |---|---|---|
 | Heurística construtiva | monta uma solução do zero | os [gulosos](guloso/README.md), `binaria.construtiva_aleatoria` e a construção gulosa aleatória do GRASP |
 | Heurística de melhoria (busca local) | troca a solução corrente por uma vizinha melhor enquanto houver uma | `busca_local_melhor_melhora` e `busca_local_primeira_melhora`, com 1-flip e troca 1-por-1, em [`utils/binaria/`](utils/README.md) |
-| Metaheurística | decide o que fazer quando a busca local para num ótimo local | SA, ILS, VNS, ALNS, Busca Tabu, GRASP e PSO |
+| Metaheurística | decide o que fazer quando a busca local para num ótimo local | SA, ILS, VNS, ALNS, Busca Tabu, GRASP, PSO e AG |
 
 Construtiva e melhoria são os dois tipos básicos de heurística (seção 5 do [README do guloso](guloso/README.md)). A busca local sozinha esbarra num limite: ela termina no primeiro ótimo local encontrado (slide 33).
 
