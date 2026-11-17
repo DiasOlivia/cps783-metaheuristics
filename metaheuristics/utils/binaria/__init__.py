@@ -6,6 +6,8 @@ from metaheuristics.utils.binaria.busca_local import busca_local_primeira_melhor
 from metaheuristics.utils.binaria.construtiva import construtiva_aleatoria
 from metaheuristics.utils.binaria.construtiva import construtiva_gulosa
 from metaheuristics.utils.binaria.construtiva import construtiva_gulosa_aleatoria
+from metaheuristics.utils.binaria.enxame import coordenadas
+from metaheuristics.utils.binaria.enxame import mover_sigmoide
 from metaheuristics.utils.binaria.insercao import insercao_aleatoria
 from metaheuristics.utils.binaria.insercao import insercao_gulosa
 from metaheuristics.utils.binaria.movimento import gerar_vizinho
@@ -26,9 +28,11 @@ __all__ = [
     "construtiva_aleatoria",
     "construtiva_gulosa",
     "construtiva_gulosa_aleatoria",
+    "coordenadas",
     "gerar_vizinho",
     "insercao_aleatoria",
     "insercao_gulosa",
+    "mover_sigmoide",
     "passos_para_guia",
     "perturbar",
     "remocao_aleatoria",

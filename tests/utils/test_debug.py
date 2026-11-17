@@ -7,6 +7,9 @@ from metaheuristics.adaptive_large_neighborhood_search import (
 )
 from metaheuristics.grasp import grasp_mochila
 from metaheuristics.iterated_local_search import iterated_local_search_mochila
+from metaheuristics.particle_swarm_optimization import (
+    particle_swarm_optimization_mochila,
+)
 from metaheuristics.simulated_annealing import simulated_annealing_mochila
 from metaheuristics.tabu_search import tabu_search_mochila
 from metaheuristics.utils import ordem
@@ -132,6 +135,22 @@ def test_depurador__grasp_desenha_a_reconexao(tmp_path):
     nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
     assert sem_debug == com_debug
     assert any("reconexao" in nome for nome in nomes)
+
+
+def test_depurador__pso_desenha_o_enxame(tmp_path):
+    itens, capacidade = _instancia()
+    random.seed(5)
+    sem_debug = particle_swarm_optimization_mochila(
+        itens, capacidade, tamanho_enxame=6, max_iteracoes=4
+    )
+    debug = Depurador(itens, capacidade, save=True, a_cada=2, pasta=tmp_path)
+    random.seed(5)
+    com_debug = particle_swarm_optimization_mochila(
+        itens, capacidade, tamanho_enxame=6, max_iteracoes=4, debug=debug
+    )
+    nomes = [arquivo.name for arquivo in tmp_path.glob("*.png")]
+    assert sem_debug == com_debug
+    assert sum("enxame" in nome for nome in nomes) == 3  # iterações 0, 2 e 4
 
 
 def test_depurador__exige_show_ou_save():
