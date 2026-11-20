@@ -37,6 +37,9 @@ plot_grasp = partial(
     titulo="Histórico do GRASP",
     rotulo_y="custo total",
     rotulo_x="soluções avaliadas",
+    rotulo_candidato="construída",
+    rotulo_atual="ótimo local",
+    rotulo_melhor="melhor até agora",
 )
 
 

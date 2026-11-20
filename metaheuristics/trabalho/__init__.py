@@ -1,3 +1,4 @@
+import random
 from itertools import combinations
 
 from metaheuristics.trabalho.debug import Debug
@@ -26,7 +27,13 @@ def busca_local(problem: Problem, solucao: Solucao) -> tuple[Solucao, int]:
     melhorou = True
     while melhorou:
         melhorou = False
-        for i, j in combinations(range(len(ordem_facilidades)), 2):
+        pares = [
+            (i, j)
+            for i, j in combinations(range(len(ordem_facilidades)), 2)
+            if i < len(atual.abertas)
+        ]
+        random.shuffle(pares)
+        for i, j in pares:
             if i >= len(atual.abertas):
                 break
 
@@ -34,7 +41,7 @@ def busca_local(problem: Problem, solucao: Solucao) -> tuple[Solucao, int]:
             vizinha[i], vizinha[j] = vizinha[j], vizinha[i]
             avaliacoes += 1
             try:
-                candidata = problem.decodificar(vizinha)
+                candidata = problem.solve(vizinha)
             except ValueError:
                 continue
 

@@ -236,7 +236,7 @@ class Problem:
 
         return Problem(facilidades=facilidades, clientes=clientes)
 
-    def decodificar(self, ordem: list[Facilidade]) -> Solucao:
+    def solve(self, ordem: list[Facilidade]) -> Solucao:
         """Abre as facilidades na ``ordem`` dada até atender toda a demanda.
         As facilidades do fim da ordem que não forem necessárias ficam fechadas.
         """
@@ -297,10 +297,10 @@ class Problem:
             for cliente_id, quantidade in envios.items():
                 demanda_restante[cliente_id] -= quantidade
 
-        return self.decodificar(ordem)
+        return self.solve(ordem)
 
     def gen_solucao_inicial_gulosa(self) -> Solucao:
-        return self.decodificar(
+        return self.solve(
             sorted(self.facilidades, key=lambda f: f.custo_by_capacidade)
         )
 

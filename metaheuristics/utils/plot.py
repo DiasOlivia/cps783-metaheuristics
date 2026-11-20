@@ -145,6 +145,11 @@ def plotar_historico(
     save: bool = False,
     rotulo_x: str | None = None,
     rotulo_y: str = "valor",
+    rotulo_candidato: str = "candidato",
+    rotulo_atual: str = "atual",
+    rotulo_melhor: str = "melhor",
+    rotulo_nova_melhor: str = "nova melhor solução",
+    rotulo_otimo: str = "ótimo",
 ) -> Figure:
     """Plot candidate, current and best values of one run.
 
@@ -172,6 +177,14 @@ def plotar_historico(
         ``eixo_x``.
     rotulo_y : str, default 'valor'
         Vertical axis label.
+    rotulo_candidato, rotulo_atual : str, default 'candidato', 'atual'
+        Legend labels of the candidate and current value lines.
+    rotulo_melhor : str, default 'melhor'
+        Legend label of the best value line, followed by the final best value.
+    rotulo_nova_melhor : str, default 'nova melhor solução'
+        Legend label of the points where the best value changes.
+    rotulo_otimo : str, default 'ótimo'
+        Legend label of the optimal value line, followed by ``valor_otimo``.
 
     Returns
     -------
@@ -202,14 +215,14 @@ def plotar_historico(
             [historico["valor_candidato"][t] for t in iteracoes],
             color=COR_CANDIDATO,
             linewidth=0.6,
-            label="candidato",
+            label=rotulo_candidato,
         )
         ax.plot(
             xs,
             [historico["valor_atual"][t] for t in iteracoes],
             color=COR_ATUAL,
             linewidth=1.0,
-            label="atual",
+            label=rotulo_atual,
         )
         melhores = [historico["melhor_valor"][t] for t in iteracoes]
         ax.step(
@@ -218,14 +231,14 @@ def plotar_historico(
             where="post",
             color=COR_MELHOR,
             linewidth=1.8,
-            label=f"melhor ({milhar(melhores[-1])})",
+            label=f"{rotulo_melhor} ({milhar(melhores[-1])})",
         )
         ax.scatter(
             *novas_melhores(xs, melhores),
             s=28,
             color=COR_NOVO_MELHOR,
             zorder=5,
-            label="nova melhor solução",
+            label=rotulo_nova_melhor,
         )
         if valor_otimo is not None:
             ax.axhline(
@@ -233,7 +246,7 @@ def plotar_historico(
                 color=COR_TEXTO,
                 linewidth=1,
                 linestyle=":",
-                label=f"ótimo ({milhar(valor_otimo)})",
+                label=f"{rotulo_otimo} ({milhar(valor_otimo)})",
             )
         ax.xaxis.set_major_formatter(FuncFormatter(milhar))
         ax.yaxis.set_major_formatter(FuncFormatter(milhar))

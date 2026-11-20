@@ -60,6 +60,40 @@ def test_plotar_historico__rotulos_dos_eixos():
     assert figura.axes[1].get_xlabel() == "passo"
 
 
+def test_plotar_historico__rotulos_da_legenda():
+    historico = _historico_sa()
+    final = historico["melhor_valor"][max(historico["melhor_valor"])]
+
+    def legenda(figura):
+        return [
+            texto.get_text() for texto in figura.axes[0].get_legend().get_texts()
+        ]
+
+    assert legenda(plotar_historico(historico, valor_otimo=500)) == [
+        "candidato",
+        "atual",
+        f"melhor ({final})",
+        "nova melhor solução",
+        "ótimo (500)",
+    ]
+    figura = plotar_historico(
+        historico,
+        valor_otimo=500,
+        rotulo_candidato="construída",
+        rotulo_atual="ótimo local",
+        rotulo_melhor="melhor até agora",
+        rotulo_nova_melhor="melhorou",
+        rotulo_otimo="referência",
+    )
+    assert legenda(figura) == [
+        "construída",
+        "ótimo local",
+        f"melhor até agora ({final})",
+        "melhorou",
+        "referência (500)",
+    ]
+
+
 def test_plotar_historico__ponto_em_cada_nova_melhor():
     historico = _historico_sa()
     melhores = [
