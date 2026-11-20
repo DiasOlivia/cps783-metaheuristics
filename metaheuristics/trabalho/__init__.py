@@ -100,6 +100,9 @@ def grasp(
             avaliacoes=avaliacoes,
         )
 
+    if debug is not None:
+        debug.fim()
+
     if melhor_solucao is None:
         raise ValueError("Nenhuma construção do GRASP atendeu toda a demanda.")
 

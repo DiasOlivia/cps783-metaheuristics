@@ -55,9 +55,9 @@ class Debug:
     facilidade aberta, de cima para baixo na ordem de abertura, dividida nos
     clientes atendidos na ordem de atendimento, com a capacidade livre no fim. Cada
     cliente tem sempre a mesma cor. À direita fica o mini-histórico do custo total.
-    Só desenha as iterações múltiplas de ``a_cada``, além da primeira e da última,
-    até ``limite`` figuras. O depurador nunca sorteia números, então os resultados
-    são os mesmos com e sem ele.
+    Desenha as iterações múltiplas de ``a_cada``, além da primeira e da última
+    bem-sucedida, até ``limite`` figuras. O depurador nunca sorteia números, então os
+    resultados são os mesmos com e sem ele.
 
     Parameters
     ----------
@@ -65,8 +65,9 @@ class Debug:
         Se mostra cada figura (no notebook).
     save : bool, default False
         Se salva cada figura como PNG.
-    a_cada : int, default 1
-        Desenha a cada ``a_cada`` iterações.
+    a_cada : int or None, default 1
+        Desenha a cada ``a_cada`` iterações. Com ``None``, desenha só a última
+        iteração bem-sucedida.
     limite : int, default 100
         Número máximo de figuras.
     pasta : str or pathlib.Path, optional
@@ -77,12 +78,12 @@ class Debug:
         self,
         show: bool = False,
         save: bool = False,
-        a_cada: int = 1,
+        a_cada: int | None = None,
         limite: int = 100,
         pasta: str | Path | None = None,
     ) -> None:
-        if a_cada < 1:
-            raise ValueError("a_cada deve ser pelo menos 1.")
+        if a_cada is not None and a_cada < 1:
+            raise ValueError("a_cada deve ser pelo menos 1, ou None.")
         if not (show or save):
             raise ValueError(
                 "Ligue show e/ou save: sem eles o depurador não gera nada."
@@ -106,6 +107,8 @@ class Debug:
         self.custos_construidas: list[int] = []
         self.custos_atuais: list[int] = []
         self.custos_melhores: list[int] = []
+        self._ultima: tuple[Solucao, Solucao, Solucao] | None = None
+        self._ultima_desenhada = 0
 
     def inicio_iteracao(self, problem: Problem, iteracao: int, total: int) -> None:
         """Marca o início de uma iteração e decide se ela será desenhada.
@@ -116,7 +119,9 @@ class Debug:
         self.capacidade = {f.id: f.capacidade for f in problem.facilidades}
         self.iteracao = iteracao
         self.total = total
-        self.ativo = iteracao in (1, total) or iteracao % self.a_cada == 0
+        self.ativo = self.a_cada is not None and (
+            iteracao in (1, total) or iteracao % self.a_cada == 0
+        )
 
     def fim_iteracao(
         self, construida: Solucao, melhorada: Solucao, melhor: Solucao
@@ -126,8 +131,18 @@ class Debug:
         self.custos_construidas.append(construida.custo_total)
         self.custos_atuais.append(melhorada.custo_total)
         self.custos_melhores.append(melhor.custo_total)
+        self._ultima = (construida, melhorada, melhor)
         if self._pode_desenhar():
             self._desenhar(construida, melhorada, melhor)
+
+    def fim(self) -> None:
+        """Desenha a última iteração bem-sucedida, se ela ainda não foi desenhada."""
+        if self._ultima is None or self.iteracoes[-1] == self._ultima_desenhada:
+            return
+        if self.figuras >= self.limite:
+            return
+        self.iteracao = self.iteracoes[-1]
+        self._desenhar(*self._ultima)
 
     def _pode_desenhar(self) -> bool:
         if not self.ativo:
@@ -149,7 +164,7 @@ class Debug:
             f"construída {milhar(construida.custo_total)} → ótimo local "
             f"{milhar(melhorada.custo_total)} · melhor {milhar(melhor.custo_total)}"
         )
-        with plt.rc_context(ESTILO):
+        with plt.rc_context(ESTILO):  # type: ignore
             fig = plt.figure(figsize=(15, 7.5), layout="constrained")
             grade = fig.add_gridspec(2, 2, width_ratios=(1.15, 1))
             ax_construida = fig.add_subplot(grade[0, 0])
@@ -172,6 +187,7 @@ class Debug:
             )
             plt.close(fig)
         self.figuras += 1
+        self._ultima_desenhada = self.iteracao
 
     def _alocacao(self, ax, solucao: Solucao, titulo: str) -> None:
         maior = max(self.capacidade.values())

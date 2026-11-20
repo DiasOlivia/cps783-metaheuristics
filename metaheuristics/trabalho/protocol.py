@@ -273,16 +273,14 @@ class Problem:
         ordem: list[Facilidade] = []
 
         while any(demanda_restante.values()) and fechadas:
-            custos = {f: f.custo_by_capacidade for f in fechadas}
-
-            # avaliadas = {
-            #     f: f.alocar(self.clientes, demanda_restante) for f in fechadas
-            # }
-            # custos = {
-            #     f: (f.custo_fixo + custo_transporte) / sum(envios.values())
-            #     for f, (envios, custo_transporte) in avaliadas.items()
-            #     if envios
-            # }
+            avaliadas = {
+                f: f.alocar(self.clientes, demanda_restante) for f in fechadas
+            }
+            custos = {
+                f: (f.custo_fixo + custo_transporte) / sum(envios.values())
+                for f, (envios, custo_transporte) in avaliadas.items()
+                if envios
+            }
             if not custos:
                 break
 
@@ -291,8 +289,7 @@ class Problem:
             fechadas.remove(facilidade)
             ordem.append(facilidade)
 
-            envios, _ = facilidade.alocar(self.clientes, demanda_restante)
-            # envios, _ = avaliadas[facilidade]
+            envios, _ = avaliadas[facilidade]
 
             for cliente_id, quantidade in envios.items():
                 demanda_restante[cliente_id] -= quantidade
