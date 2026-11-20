@@ -1,4 +1,5 @@
 import random
+from collections.abc import Mapping
 
 
 class ClienteId(int):
@@ -79,6 +80,35 @@ class Facilidade:
                 )
             )
         return itens
+
+    def alocar(
+        self,
+        clientes: list[Cliente],
+        demanda_restante: Mapping[ClienteId, int],
+    ) -> tuple[dict[ClienteId, int], int]:
+        """Calcula quanto a ``facilidade`` envia a cada cliente.
+
+        Os clientes são atendidos do menor para o maior custo de transporte.
+        Devolve os envios por cliente e o custo de transporte deles.
+        """
+        capacidade = self.capacidade
+        envios: dict[ClienteId, int] = {}
+        custo_transporte = 0
+
+        for cliente in sorted(clientes, key=lambda c: c.custo_transporte(self)):
+            if capacidade == 0:
+                break
+            if demanda_restante[cliente.id] == 0:
+                continue
+            if cliente.conflitos & envios.keys():
+                continue
+
+            quantidade = min(demanda_restante[cliente.id], capacidade)
+            envios[cliente.id] = quantidade
+            capacidade -= quantidade
+            custo_transporte += cliente.custo_transporte(self) * quantidade
+
+        return envios, custo_transporte
 
     @staticmethod
     def gen_facilities(
@@ -194,6 +224,35 @@ class Problem:
 
         return Problem(facilidades=facilidades, clientes=clientes)
 
+    def gen_solucao_aleatoria_gulosa(self, alfa: float) -> Solucao:
+        demanda_by_cliente = self.demanda_by_cliente()
+        abertas: list[FacilidadeId] = []
+        alocacao: dict[tuple[ClienteId, FacilidadeId], int] = {}
+        custo_total = 0
+
+        fechadas = list(self.facilidades)
+
+        while any(demanda_by_cliente.values()) and len(fechadas) > 0:
+            lrc = gen_lrc_by_custo_capacidade(fechadas, alfa)
+            facilidade = random.choice(lrc)
+            fechadas.remove(facilidade)
+
+            envios, custo_transporte = facilidade.alocar(
+                self.clientes, demanda_by_cliente
+            )
+            for cliente_id, quantidade in envios.items():
+                alocacao[(cliente_id, facilidade.id)] = quantidade
+                demanda_by_cliente[cliente_id] -= quantidade
+
+            abertas.append(facilidade.id)
+            custo_total += facilidade.custo_fixo + custo_transporte
+
+        if any(demanda_by_cliente.values()):
+            raise ValueError(
+                "A solução gulosa não atende toda a demanda com todas as facilidades abertas."
+            )
+        return Solucao(abertas=abertas, alocacao=alocacao, custo_total=custo_total)
+
     def gen_solucao_inicial_gulosa(self) -> Solucao:
         demanda_by_cliente = self.demanda_by_cliente()
 
@@ -207,28 +266,15 @@ class Problem:
             if not any(demanda_by_cliente.values()):
                 break
 
+            envios, custo_transporte = facilidade.alocar(
+                self.clientes, demanda_by_cliente
+            )
+            for cliente_id, quantidade in envios.items():
+                alocacao[(cliente_id, facilidade.id)] = quantidade
+                demanda_by_cliente[cliente_id] -= quantidade
+
             abertas.append(facilidade.id)
-            custo_total += facilidade.custo_fixo
-            capacidade = facilidade.capacidade
-            atendidos: set[ClienteId] = set()
-
-            for cliente in sorted(
-                self.clientes,
-                key=lambda c: c.custo_transporte(facilidade),
-            ):
-                if capacidade == 0:
-                    break
-                if demanda_by_cliente[cliente.id] == 0:
-                    continue
-                if cliente.conflitos & atendidos:
-                    continue
-
-                quantidade = min(demanda_by_cliente[cliente.id], capacidade)
-                alocacao[(cliente.id, facilidade.id)] = quantidade
-                demanda_by_cliente[cliente.id] -= quantidade
-                capacidade -= quantidade
-                atendidos.add(cliente.id)
-                custo_total += cliente.custo_transporte(facilidade) * quantidade
+            custo_total += facilidade.custo_fixo + custo_transporte
 
         if any(demanda_by_cliente.values()):
             raise ValueError(
@@ -236,3 +282,16 @@ class Problem:
             )
 
         return Solucao(abertas=abertas, alocacao=alocacao, custo_total=custo_total)
+
+
+def gen_lrc_by_custo_capacidade(
+    facilidades: list[Facilidade],
+    alfa: float,
+) -> list[Facilidade]:
+    if alfa < 0 or alfa > 1:
+        raise ValueError(f"O valor de alfa precisa estar entre 0 e 1, ele é {alfa}")
+
+    razoes = [f.custo_by_capacidade for f in facilidades]
+    r_min, r_max = min(razoes), max(razoes)
+    limite = max(r_min, (1 - alfa) * r_min + alfa * r_max)  # erro de arredondamento
+    return [f for f in facilidades if f.custo_by_capacidade <= limite]
