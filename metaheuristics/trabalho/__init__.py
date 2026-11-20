@@ -1,5 +1,6 @@
 import random
 from collections.abc import Mapping
+from itertools import combinations
 
 from metaheuristics.utils.historico import Historico
 from metaheuristics.utils.historico import novo_historico
@@ -228,45 +229,17 @@ class Problem:
 
         return Problem(facilidades=facilidades, clientes=clientes)
 
-    def gen_solucao_aleatoria_gulosa(self, alfa: float) -> Solucao:
-        demanda_by_cliente = self.demanda_by_cliente()
-        abertas: list[FacilidadeId] = []
-        alocacao: dict[tuple[ClienteId, FacilidadeId], int] = {}
-        custo_total = 0
-
-        fechadas = list(self.facilidades)
-
-        while any(demanda_by_cliente.values()) and len(fechadas) > 0:
-            lrc = _gen_lrc_by_custo_capacidade(fechadas, alfa)
-            facilidade = random.choice(lrc)
-            fechadas.remove(facilidade)
-
-            envios, custo_transporte = facilidade.alocar(
-                self.clientes, demanda_by_cliente
-            )
-            for cliente_id, quantidade in envios.items():
-                alocacao[(cliente_id, facilidade.id)] = quantidade
-                demanda_by_cliente[cliente_id] -= quantidade
-
-            abertas.append(facilidade.id)
-            custo_total += facilidade.custo_fixo + custo_transporte
-
-        if any(demanda_by_cliente.values()):
-            raise ValueError(
-                "A solução gulosa não atende toda a demanda com todas as facilidades abertas."
-            )
-        return Solucao(abertas=abertas, alocacao=alocacao, custo_total=custo_total)
-
-    def gen_solucao_inicial_gulosa(self) -> Solucao:
+    def decodificar(self, ordem: list[Facilidade]) -> Solucao:
+        """Abre as facilidades na ``ordem`` dada até atender toda a demanda.
+        As facilidades do fim da ordem que não forem necessárias ficam fechadas.
+        """
         demanda_by_cliente = self.demanda_by_cliente()
 
         abertas: list[FacilidadeId] = []
         alocacao: dict[tuple[ClienteId, FacilidadeId], int] = {}
         custo_total = 0
 
-        for facilidade in sorted(
-            self.facilidades, key=lambda f: f.custo_by_capacidade
-        ):
+        for facilidade in ordem:
             if not any(demanda_by_cliente.values()):
                 break
 
@@ -282,23 +255,94 @@ class Problem:
 
         if any(demanda_by_cliente.values()):
             raise ValueError(
-                "A solução gulosa não atende toda a demanda com todas as facilidades abertas."
+                "A ordem não atende toda a demanda, mesmo abrindo todas as facilidades."
             )
 
         return Solucao(abertas=abertas, alocacao=alocacao, custo_total=custo_total)
 
+    def gen_solucao_aleatoria_gulosa(self, alfa: float) -> Solucao:
+        demanda_restante = self.demanda_by_cliente()
+        fechadas = list(self.facilidades)
+        ordem: list[Facilidade] = []
 
-def _gen_lrc_by_custo_capacidade(
-    facilidades: list[Facilidade],
-    alfa: float,
-) -> list[Facilidade]:
+        while any(demanda_restante.values()) and fechadas:
+            custos = {f: f.custo_by_capacidade for f in fechadas}
+
+            # avaliadas = {
+            #     f: f.alocar(self.clientes, demanda_restante) for f in fechadas
+            # }
+            # custos = {
+            #     f: (f.custo_fixo + custo_transporte) / sum(envios.values())
+            #     for f, (envios, custo_transporte) in avaliadas.items()
+            #     if envios
+            # }
+            if not custos:
+                break
+
+            lrc = _gen_lrc(custos, alfa)
+            facilidade = random.choice(lrc)
+            fechadas.remove(facilidade)
+            ordem.append(facilidade)
+
+            envios, _ = facilidade.alocar(self.clientes, demanda_restante)
+            # envios, _ = avaliadas[facilidade]
+
+            for cliente_id, quantidade in envios.items():
+                demanda_restante[cliente_id] -= quantidade
+
+        return self.decodificar(ordem)
+
+    def gen_solucao_inicial_gulosa(self) -> Solucao:
+        return self.decodificar(
+            sorted(self.facilidades, key=lambda f: f.custo_by_capacidade)
+        )
+
+    def busca_local(self, solucao: Solucao) -> tuple[Solucao, int]:
+        """Busca local de primeira melhora que troca duas facilidades de posição na ordem.
+
+        A ordem começa pelas abertas da ``solucao``, na ordem de abertura, seguidas das
+        fechadas. Vizinhas inviáveis são ignoradas. Devolve o ótimo local e quantas
+        vizinhas foram avaliadas.
+        """
+        facilidade_by_id = {f.id: f for f in self.facilidades}
+        abertas_ids = set(solucao.abertas)
+        # ordem_facilidade = abertas + fechadas
+        ordem_facilidades = [facilidade_by_id[f_id] for f_id in solucao.abertas]
+        ordem_facilidades += [f for f in self.facilidades if f.id not in abertas_ids]
+
+        atual = solucao
+        avaliacoes = 0
+        melhorou = True
+        while melhorou:
+            melhorou = False
+            for i, j in combinations(range(len(ordem_facilidades)), 2):
+                # Trocar duas fechadas do fim da ordem não muda a solução
+                if i >= len(atual.abertas):
+                    break
+
+                vizinha = ordem_facilidades.copy()
+                vizinha[i], vizinha[j] = vizinha[j], vizinha[i]
+                avaliacoes += 1
+                try:
+                    candidata = self.decodificar(vizinha)
+                except ValueError:
+                    continue
+
+                if candidata.custo_total < atual.custo_total:
+                    ordem_facilidades, atual = vizinha, candidata
+                    melhorou = True
+                    break
+
+        return atual, avaliacoes
+
+
+def _gen_lrc(custos: dict[Facilidade, float], alfa: float) -> list[Facilidade]:
     if alfa < 0 or alfa > 1:
         raise ValueError(f"O valor de alfa precisa estar entre 0 e 1, ele é {alfa}")
 
-    razoes = [f.custo_by_capacidade for f in facilidades]
-    r_min, r_max = min(razoes), max(razoes)
-    limite = max(r_min, (1 - alfa) * r_min + alfa * r_max)  # erro de arredondamento
-    return [f for f in facilidades if f.custo_by_capacidade <= limite]
+    c_min, c_max = min(custos.values()), max(custos.values())
+    limite = max(c_min, (1 - alfa) * c_min + alfa * c_max)  # erro de arredondamento
+    return [f for f, c in custos.items() if c <= limite]
 
 
 def grasp(
@@ -314,23 +358,27 @@ def grasp(
 
     for iteracao in range(1, max_iterations + 1):
         try:
-            solution = problem.gen_solucao_aleatoria_gulosa(alfa)
+            construida = problem.gen_solucao_aleatoria_gulosa(alfa)
         except ValueError:
             continue
 
         avaliacoes += 1
 
+        # a busca nunca piora a solucao
+        melhorada, vizinhas = problem.busca_local(construida)
+        avaliacoes += vizinhas
+
         if (
             melhor_solucao is None
-            or solution.custo_total < melhor_solucao.custo_total
+            or melhorada.custo_total < melhor_solucao.custo_total
         ):
-            melhor_solucao = solution
+            melhor_solucao = melhorada
 
         registrar(
             historico,
             iteracao,
-            valor_candidato=solution.custo_total,
-            valor_atual=solution.custo_total,
+            valor_candidato=construida.custo_total,
+            valor_atual=melhorada.custo_total,
             melhor_valor=melhor_solucao.custo_total,
             avaliacoes=avaliacoes,
         )
