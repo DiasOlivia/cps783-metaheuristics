@@ -1,5 +1,7 @@
 import random
+from itertools import pairwise
 
+import numpy as np
 from matplotlib.figure import Figure
 
 from metaheuristics.adaptive_large_neighborhood_search import (
@@ -7,6 +9,7 @@ from metaheuristics.adaptive_large_neighborhood_search import (
 )
 from metaheuristics.simulated_annealing import simulated_annealing_mochila
 from metaheuristics.utils.instancia import gerar_instancia_aleatoria
+from metaheuristics.utils.plot import milhar
 from metaheuristics.utils.plot import plotar_comparacao
 from metaheuristics.utils.plot import plotar_historico
 
@@ -44,6 +47,36 @@ def test_plotar_historico__pesos_da_alns_no_painel_de_extras():
         "insercao_gulosa",
     ]
     assert figura.axes[2].get_ylabel() == "temperatura"
+
+
+def test_plotar_historico__rotulos_dos_eixos():
+    historico = _historico_sa()
+    padrao = plotar_historico(historico, eixo_x="iteracao")
+    assert padrao.axes[0].get_ylabel() == "valor"
+    assert padrao.axes[1].get_xlabel() == "iteração"
+
+    figura = plotar_historico(historico, rotulo_x="passo", rotulo_y="custo")
+    assert figura.axes[0].get_ylabel() == "custo"
+    assert figura.axes[1].get_xlabel() == "passo"
+
+
+def test_plotar_historico__ponto_em_cada_nova_melhor():
+    historico = _historico_sa()
+    melhores = [
+        historico["melhor_valor"][t] for t in sorted(historico["melhor_valor"])
+    ]
+    mudancas = 1 + sum(a != b for a, b in pairwise(melhores))
+
+    figura = plotar_historico(historico)
+    pontos = figura.axes[0].collections[0]
+    assert len(np.asarray(pontos.get_offsets())) == mudancas
+    assert pontos.get_label() == "nova melhor solução"
+
+
+def test_milhar__separador_brasileiro():
+    assert milhar(30289) == "30.289"
+    assert milhar(500) == "500"
+    assert milhar(1234.5) == "1.234,5"
 
 
 def test_plotar_comparacao__uma_linha_por_rotulo():

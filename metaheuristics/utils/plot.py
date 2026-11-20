@@ -1,8 +1,10 @@
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.ticker import FuncFormatter
 
 from metaheuristics.utils.historico import Historico
 
@@ -21,6 +23,7 @@ COR_MELHORA = "#2a9d55"
 COR_PIORA = "#d1495b"
 COR_IGUAL = "#c9a227"
 COR_FORA = "#d9d8d2"
+COR_NOVO_MELHOR = "#d1495b"
 
 ESTILO = {
     "figure.facecolor": COR_SUPERFICIE,
@@ -53,6 +56,41 @@ CORES_OPERADORES = (
     "#17a2b8",
     "#8c564b",
 )
+
+
+def milhar(valor: float, _posicao: int | None = None) -> str:
+    """Format a tick value with Brazilian thousands separators.
+
+    Integers become ``30.289`` and other values keep one decimal place, as in
+    ``1.234,5``. Use it with ``matplotlib.ticker.FuncFormatter``.
+    """
+    texto = f"{valor:,.0f}" if float(valor).is_integer() else f"{valor:,.1f}"
+    return texto.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def novas_melhores(
+    xs: Sequence[float], melhores: Sequence[float]
+) -> tuple[list[float], list[float]]:
+    """Points where the best value changes, the first one included.
+
+    Parameters
+    ----------
+    xs : list of float
+        Horizontal position of each recorded iteration.
+    melhores : list of float
+        Best value at each recorded iteration.
+
+    Returns
+    -------
+    tuple of (list of float, list of float)
+        Horizontal positions and best values of the points.
+    """
+    pontos = [
+        (x, valor)
+        for k, (x, valor) in enumerate(zip(xs, melhores))
+        if k == 0 or valor != melhores[k - 1]
+    ]
+    return [x for x, _ in pontos], [valor for _, valor in pontos]
 
 
 def finalizar(
@@ -105,6 +143,8 @@ def plotar_historico(
     titulo: str = "Histórico da busca",
     show: bool = False,
     save: bool = False,
+    rotulo_x: str | None = None,
+    rotulo_y: str = "valor",
 ) -> Figure:
     """Plot candidate, current and best values of one run.
 
@@ -127,12 +167,19 @@ def plotar_historico(
         Whether to show the figure.
     save : bool, default False
         Whether to save the figure as PNG.
+    rotulo_x : str, optional
+        Horizontal axis label; defaults to 'avaliações' or 'iteração', following
+        ``eixo_x``.
+    rotulo_y : str, default 'valor'
+        Vertical axis label.
 
     Returns
     -------
     matplotlib.figure.Figure
         The figure.
     """
+    if rotulo_x is None:
+        rotulo_x = "avaliações" if eixo_x == "avaliacoes" else "iteração"
     iteracoes = sorted(historico["valor_atual"])
     xs = _eixo_x(historico, eixo_x)
     extras = [chave for chave in historico if chave not in CHAVES_COMUNS]
@@ -164,13 +211,21 @@ def plotar_historico(
             linewidth=1.0,
             label="atual",
         )
+        melhores = [historico["melhor_valor"][t] for t in iteracoes]
         ax.step(
             xs,
-            [historico["melhor_valor"][t] for t in iteracoes],
+            melhores,
             where="post",
             color=COR_MELHOR,
             linewidth=1.8,
-            label=f"melhor ({historico['melhor_valor'][iteracoes[-1]]})",
+            label=f"melhor ({milhar(melhores[-1])})",
+        )
+        ax.scatter(
+            *novas_melhores(xs, melhores),
+            s=28,
+            color=COR_NOVO_MELHOR,
+            zorder=5,
+            label="nova melhor solução",
         )
         if valor_otimo is not None:
             ax.axhline(
@@ -178,9 +233,11 @@ def plotar_historico(
                 color=COR_TEXTO,
                 linewidth=1,
                 linestyle=":",
-                label=f"ótimo ({valor_otimo})",
+                label=f"ótimo ({milhar(valor_otimo)})",
             )
-        ax.set_ylabel("valor")
+        ax.xaxis.set_major_formatter(FuncFormatter(milhar))
+        ax.yaxis.set_major_formatter(FuncFormatter(milhar))
+        ax.set_ylabel(rotulo_y)
         ax.set_title(titulo, loc="left", fontsize=13)
         ax.legend(loc="lower right")
         if extras:
@@ -215,11 +272,10 @@ def plotar_historico(
                 degraus(eixo_outros, chave, COR_EXTRA, chave)
             if outros:
                 eixo_outros.set_ylabel(", ".join(outros))
-            ax_extra.set_xlabel(
-                "avaliações" if eixo_x == "avaliacoes" else "iteração"
-            )
+            ax_extra.xaxis.set_major_formatter(FuncFormatter(milhar))
+            ax_extra.set_xlabel(rotulo_x)
         else:
-            ax.set_xlabel("avaliações" if eixo_x == "avaliacoes" else "iteração")
+            ax.set_xlabel(rotulo_x)
     carimbo = f"{datetime.now():%Y%m%d_%H%M%S}"
     finalizar(fig, f"historico_{carimbo}", show, save, PASTA_PLOTS / "utils")
     return fig
@@ -264,7 +320,7 @@ def plotar_comparacao(
                 [historico["melhor_valor"][t] for t in iteracoes],
                 where="post",
                 linewidth=1.6,
-                label=f"{rotulo} ({final})",
+                label=f"{rotulo} ({milhar(final)})",
             )
         if valor_otimo is not None:
             ax.axhline(
@@ -272,8 +328,10 @@ def plotar_comparacao(
                 color=COR_TEXTO,
                 linewidth=1,
                 linestyle=":",
-                label=f"ótimo ({valor_otimo})",
+                label=f"ótimo ({milhar(valor_otimo)})",
             )
+        ax.xaxis.set_major_formatter(FuncFormatter(milhar))
+        ax.yaxis.set_major_formatter(FuncFormatter(milhar))
         ax.set_xlabel("avaliações" if eixo_x == "avaliacoes" else "iteração")
         ax.set_ylabel("melhor valor")
         ax.set_title("Comparação: melhor valor encontrado", loc="left", fontsize=13)
