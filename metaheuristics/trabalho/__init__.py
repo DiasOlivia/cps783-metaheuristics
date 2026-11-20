@@ -1,12 +1,22 @@
 import random
 
 
+class ClienteId(int):
+    def __repr__(self) -> str:
+        return f"C{int(self)}"
+
+
+class FacilidadeId(int):
+    def __repr__(self) -> str:
+        return f"F{int(self)}"
+
+
 class Cliente:
     def __init__(self, demanda: int, id: int) -> None:
         self.demanda = demanda
-        self.id = id
-        self.custos: dict[int, int] = {}
-        self.conflitos: set[int] = set()
+        self.id = ClienteId(id)
+        self.custos: dict[FacilidadeId, int] = {}
+        self.conflitos: set[ClienteId] = set()
 
     def __repr__(self) -> str:
         return f"Cliente(demanda={self.demanda}, id={self.id})"
@@ -42,14 +52,14 @@ class Facilidade:
     def __init__(self, capacidade: int, custo_fixo: int, id: int) -> None:
         self.capacidade = capacidade
         self.custo_fixo = custo_fixo
-        self.id = id
+        self.id = FacilidadeId(id)
 
     def __repr__(self) -> str:
         return f"Facilidade(capacidade={self.capacidade}, custo_fixo={self.custo_fixo}, id={self.id})"
 
     @property
-    def relation(self):
-        return self.capacidade / self.custo_fixo
+    def custo_by_capacidade(self) -> float:
+        return self.custo_fixo / self.capacidade
 
     @staticmethod
     def gen_random_facilities(
@@ -92,9 +102,9 @@ class Solucao:
     """
     Attributes
     ----------
-    abertas : list of int
+    abertas : list of FacilidadeId
         Ids das facilidades abertas, na ordem de abertura.
-    alocacao : dict of {(int, int): int}
+    alocacao : dict of {(ClienteId, FacilidadeId): int}
         Quanto cada facilidade envia a cada cliente, indexado por
         ``(cliente_id, facilidade_id)``. Um cliente pode ser atendido por mais de
         uma facilidade, e pares ausentes não recebem nada.
@@ -104,8 +114,8 @@ class Solucao:
 
     def __init__(
         self,
-        abertas: list[int],
-        alocacao: dict[tuple[int, int], int],
+        abertas: list[FacilidadeId],
+        alocacao: dict[tuple[ClienteId, FacilidadeId], int],
         custo_total: int,
     ) -> None:
         self.abertas = abertas
@@ -126,7 +136,7 @@ class Problem:
     def __repr__(self) -> str:
         return f"Problem(facilidades={self.facilidades}, clientes={self.clientes})"
 
-    def demanda_by_cliente(self) -> dict[int, int]:
+    def demanda_by_cliente(self) -> dict[ClienteId, int]:
         return {cliente.id: cliente.demanda for cliente in self.clientes}
 
     @staticmethod
@@ -185,22 +195,22 @@ class Problem:
         return Problem(facilidades=facilidades, clientes=clientes)
 
     def gen_solucao_inicial_gulosa(self) -> Solucao:
-        restante = self.demanda_by_cliente()
+        demanda_by_cliente = self.demanda_by_cliente()
 
-        abertas: list[int] = []
-        alocacao: dict[tuple[int, int], int] = {}
+        abertas: list[FacilidadeId] = []
+        alocacao: dict[tuple[ClienteId, FacilidadeId], int] = {}
         custo_total = 0
 
         for facilidade in sorted(
-            self.facilidades, key=lambda f: f.relation, reverse=True
+            self.facilidades, key=lambda f: f.custo_by_capacidade
         ):
-            if not any(restante.values()):
+            if not any(demanda_by_cliente.values()):
                 break
 
             abertas.append(facilidade.id)
             custo_total += facilidade.custo_fixo
             capacidade = facilidade.capacidade
-            atendidos: set[int] = set()
+            atendidos: set[ClienteId] = set()
 
             for cliente in sorted(
                 self.clientes,
@@ -208,19 +218,19 @@ class Problem:
             ):
                 if capacidade == 0:
                     break
-                if restante[cliente.id] == 0:
+                if demanda_by_cliente[cliente.id] == 0:
                     continue
                 if cliente.conflitos & atendidos:
                     continue
 
-                quantidade = min(restante[cliente.id], capacidade)
+                quantidade = min(demanda_by_cliente[cliente.id], capacidade)
                 alocacao[(cliente.id, facilidade.id)] = quantidade
-                restante[cliente.id] -= quantidade
+                demanda_by_cliente[cliente.id] -= quantidade
                 capacidade -= quantidade
                 atendidos.add(cliente.id)
                 custo_total += cliente.custo_transporte(facilidade) * quantidade
 
-        if any(restante.values()):
+        if any(demanda_by_cliente.values()):
             raise ValueError(
                 "A solução gulosa não atende toda a demanda com todas as facilidades abertas."
             )
