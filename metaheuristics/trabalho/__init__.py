@@ -1,6 +1,10 @@
 import random
 from collections.abc import Mapping
 
+from metaheuristics.utils.historico import Historico
+from metaheuristics.utils.historico import novo_historico
+from metaheuristics.utils.historico import registrar
+
 
 class ClienteId(int):
     def __repr__(self) -> str:
@@ -233,7 +237,7 @@ class Problem:
         fechadas = list(self.facilidades)
 
         while any(demanda_by_cliente.values()) and len(fechadas) > 0:
-            lrc = gen_lrc_by_custo_capacidade(fechadas, alfa)
+            lrc = _gen_lrc_by_custo_capacidade(fechadas, alfa)
             facilidade = random.choice(lrc)
             fechadas.remove(facilidade)
 
@@ -284,7 +288,7 @@ class Problem:
         return Solucao(abertas=abertas, alocacao=alocacao, custo_total=custo_total)
 
 
-def gen_lrc_by_custo_capacidade(
+def _gen_lrc_by_custo_capacidade(
     facilidades: list[Facilidade],
     alfa: float,
 ) -> list[Facilidade]:
@@ -295,3 +299,43 @@ def gen_lrc_by_custo_capacidade(
     r_min, r_max = min(razoes), max(razoes)
     limite = max(r_min, (1 - alfa) * r_min + alfa * r_max)  # erro de arredondamento
     return [f for f in facilidades if f.custo_by_capacidade <= limite]
+
+
+def grasp(
+    problem: Problem, alfa: float, max_iterations: int
+) -> tuple[Solucao, Historico]:
+
+    if alfa < 0 or alfa > 1:
+        raise ValueError(f"O valor de alfa precisa estar entre 0 e 1, ele é {alfa}")
+
+    historico = novo_historico()
+    avaliacoes = 0
+    melhor_solucao: Solucao | None = None
+
+    for iteracao in range(1, max_iterations + 1):
+        try:
+            solution = problem.gen_solucao_aleatoria_gulosa(alfa)
+        except ValueError:
+            continue
+
+        avaliacoes += 1
+
+        if (
+            melhor_solucao is None
+            or solution.custo_total < melhor_solucao.custo_total
+        ):
+            melhor_solucao = solution
+
+        registrar(
+            historico,
+            iteracao,
+            valor_candidato=solution.custo_total,
+            valor_atual=solution.custo_total,
+            melhor_valor=melhor_solucao.custo_total,
+            avaliacoes=avaliacoes,
+        )
+
+    if melhor_solucao is None:
+        raise ValueError("Nenhuma construção do GRASP atendeu toda a demanda.")
+
+    return melhor_solucao, historico

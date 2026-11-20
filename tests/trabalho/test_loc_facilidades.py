@@ -1,8 +1,10 @@
 import random
 
 from metaheuristics.trabalho import Problem
+from metaheuristics.trabalho import grasp
+from metaheuristics.utils.plot import plotar_historico
 
-PLOT = False
+PLOT = True
 
 
 def test_loc_facilidade():
@@ -28,6 +30,7 @@ def test_loc_facilidade():
         pares_conflitantes=[(2, 5), (1, 7), (4, 6)],
     )
 
-    solucao_gulosa = problem.gen_solucao_inicial_gulosa()
+    melhor_solucao, historico = grasp(problem, 1.0, 100)
 
-    x = 10
+    if PLOT:
+        plotar_historico(historico, save=True)
