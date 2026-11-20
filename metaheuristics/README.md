@@ -31,7 +31,7 @@ d ───e3─── c
 A solução é um vetor binário com uma posição por aresta: `v_e = 1` se a aresta `e` está na volta. A volta `a → b → c → d → a` vira `(1, 1, 1, 1, 0, 0)`.
 
 - **Tamanho `O(n²)`**, porque o grafo completo tem `n(n − 1)/2` arestas.
-- **A maioria dos vetores não é uma volta.** `(1, 1, 0, 0, 0, 0)` não visita `d` e não retorna a `a`. `(1, 1, 1, 1, 1, 1)` deixa todas as cidades com grau 3. Dos `2⁶ = 64` vetores possíveis, só 3 são voltas. Por isso o algoritmo precisa verificar que cada vértice tem grau 2 e que não há subciclo, como faz o [guloso do caixeiro viajante](guloso/caixeiro_viajante/README.md).
+- **A maioria dos vetores não é uma volta.** `(1, 1, 0, 0, 0, 0)` não visita `d` e não retorna a `a`. `(1, 1, 1, 1, 1, 1)` deixa todas as cidades com grau 3. Dos `2⁶ = 64` vetores possíveis, só 3 são voltas. Por isso o algoritmo precisa verificar que cada vértice tem grau 2 e que não há subciclo, como faz o [guloso do caixeiro viajante](estudo/guloso/caixeiro_viajante/README.md).
 
 ### 2.2 Por vértices: em que ordem a volta passa pelas cidades?
 
@@ -65,14 +65,14 @@ O algoritmo cria e modifica essas anotações o tempo todo, então a representa�
 
 ## 4. O mesmo dilema em outros problemas
 
-**Árvore Geradora Mínima.** O [Kruskal](guloso/kruskal/README.md) devolve a árvore por arestas, como a lista das suas `n − 1` arestas. Por vértices, a árvore pode ser um vetor de pais (`pred[v]` é o vértice ao qual `v` se liga, a partir de uma raiz), de tamanho `O(n)`, ou um código de Prüfer: uma sequência de `n − 2` vértices em que, no grafo completo, toda sequência corresponde a uma árvore válida. O vetor `pai` usado dentro do `kruskal` parece um vetor de pais, mas é o union-find: ele só registra quais vértices já estão no mesmo componente.
+**Árvore Geradora Mínima.** O [Kruskal](estudo/guloso/kruskal/README.md) devolve a árvore por arestas, como a lista das suas `n − 1` arestas. Por vértices, a árvore pode ser um vetor de pais (`pred[v]` é o vértice ao qual `v` se liga, a partir de uma raiz), de tamanho `O(n)`, ou um código de Prüfer: uma sequência de `n − 2` vértices em que, no grafo completo, toda sequência corresponde a uma árvore válida. O vetor `pai` usado dentro do `kruskal` parece um vetor de pais, mas é o union-find: ele só registra quais vértices já estão no mesmo componente.
 
 **Mochila 0-1.** Não há grafo, mas o dilema reaparece:
 
 - **Vetor binário** (o desta pasta): diz quais itens entram. Muitos vetores passam da capacidade. Por isso `binaria.calcular_valor_peso` devolve valor 0 para eles, e o ILS e o VNS reparam a solução depois de perturbá-la.
 - **Ordem dos itens + inserção gulosa:** a solução é uma permutação, decodificada colocando cada item que ainda couber. Toda ordem gera uma solução viável, mas há muita redundância: com 20 itens, são `20!` ordens para no máximo `2²⁰` subconjuntos.
 
-A segunda forma já aparece no repositório: `binaria.construtiva_aleatoria` sorteia uma ordem e a decodifica, e a [mochila gulosa](guloso/mochila/README.md) escolhe a ordem por peso, valor ou densidade.
+A segunda forma já aparece no repositório: `binaria.construtiva_aleatoria` sorteia uma ordem e a decodifica, e a [mochila gulosa](estudo/guloso/mochila/README.md) escolhe a ordem por peso, valor ou densidade.
 
 As duas estão implementadas como peças em [`utils/`](utils/README.md): `utils/binaria/` e `utils/ordem/`. O SA, o ILS, o VNS, a ALNS, a Busca Tabu, o GRASP, o PSO, o AG e o ACO aceitam qualquer uma delas, e o [notebook do laboratório](laboratorio.ipynb) permite compará-las.
 
@@ -104,11 +104,11 @@ instância ─▶ [heurística construtiva] ─▶ 1ª solução ─▶ [busca l
 
 | Camada | O que faz | Exemplos nesta pasta |
 |---|---|---|
-| Heurística construtiva | monta uma solução do zero | os [gulosos](guloso/README.md), `binaria.construtiva_aleatoria`, a construção gulosa aleatória do GRASP e a construção da formiga do ACO |
+| Heurística construtiva | monta uma solução do zero | os [gulosos](estudo/guloso/README.md), `binaria.construtiva_aleatoria`, a construção gulosa aleatória do GRASP e a construção da formiga do ACO |
 | Heurística de melhoria (busca local) | troca a solução corrente por uma vizinha melhor enquanto houver uma | `busca_local_melhor_melhora` e `busca_local_primeira_melhora`, com 1-flip e troca 1-por-1, em [`utils/binaria/`](utils/README.md) |
 | Metaheurística | decide o que fazer quando a busca local para num ótimo local | SA, ILS, VNS, ALNS, Busca Tabu, GRASP, PSO, AG e ACO |
 
-Construtiva e melhoria são os dois tipos básicos de heurística (seção 5 do [README do guloso](guloso/README.md)). A busca local sozinha esbarra num limite: ela termina no primeiro ótimo local encontrado (slide 33).
+Construtiva e melhoria são os dois tipos básicos de heurística (seção 5 do [README do guloso](estudo/guloso/README.md)). A busca local sozinha esbarra num limite: ela termina no primeiro ótimo local encontrado (slide 33).
 
 ### 5.3 Definições
 
@@ -119,7 +119,7 @@ Portanto, construir uma solução e depois melhorá-la ainda é heurística: con
 
 ### 5.4 O ILS tem as três camadas
 
-Em [`iterated_local_search_mochila`](iterated_local_search/__init__.py):
+Em [`iterated_local_search_mochila`](estudo/iterated_local_search/__init__.py):
 
 1. `binaria.construtiva_aleatoria` é a heurística construtiva;
 2. `binaria.busca_local_melhor_melhora` é a heurística de melhoria;
@@ -129,7 +129,7 @@ Cada uma dessas peças é um parâmetro da função, então dá para trocar uma 
 
 ### 5.5 Contraexemplo: o SA
 
-O [Simulated Annealing](simulated_annealing/README.md) desta pasta, por padrão, não tem busca local: o parâmetro `busca_local` vem vazio. Ele anda de vizinho em vizinho e às vezes aceita uma piora, com uma probabilidade que diminui junto com a temperatura. Uma metaheurística não precisa partir de uma solução pronta para melhorá-la: o que a define é a estratégia para não ficar preso em ótimos locais.
+O [Simulated Annealing](estudo/simulated_annealing/README.md) desta pasta, por padrão, não tem busca local: o parâmetro `busca_local` vem vazio. Ele anda de vizinho em vizinho e às vezes aceita uma piora, com uma probabilidade que diminui junto com a temperatura. Uma metaheurística não precisa partir de uma solução pronta para melhorá-la: o que a define é a estratégia para não ficar preso em ótimos locais.
 
 ## 6. Questões para revisão
 

@@ -27,7 +27,6 @@ def busca_local(problem: Problem, solucao: Solucao) -> tuple[Solucao, int]:
     while melhorou:
         melhorou = False
         for i, j in combinations(range(len(ordem_facilidades)), 2):
-            # Trocar duas fechadas do fim da ordem não muda a solução
             if i >= len(atual.abertas):
                 break
 

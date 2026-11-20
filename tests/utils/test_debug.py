@@ -2,18 +2,20 @@ import random
 
 import pytest
 
-from metaheuristics.adaptive_large_neighborhood_search import (
+from metaheuristics.estudo.adaptive_large_neighborhood_search import (
     adaptive_large_neighborhood_search_mochila,
 )
-from metaheuristics.ant_colony_optimization import ant_colony_optimization_mochila
-from metaheuristics.genetic_algorithm import genetic_algorithm_mochila
-from metaheuristics.grasp import grasp_mochila
-from metaheuristics.iterated_local_search import iterated_local_search_mochila
-from metaheuristics.particle_swarm_optimization import (
+from metaheuristics.estudo.ant_colony_optimization import (
+    ant_colony_optimization_mochila,
+)
+from metaheuristics.estudo.genetic_algorithm import genetic_algorithm_mochila
+from metaheuristics.estudo.grasp import grasp_mochila
+from metaheuristics.estudo.iterated_local_search import iterated_local_search_mochila
+from metaheuristics.estudo.particle_swarm_optimization import (
     particle_swarm_optimization_mochila,
 )
-from metaheuristics.simulated_annealing import simulated_annealing_mochila
-from metaheuristics.tabu_search import tabu_search_mochila
+from metaheuristics.estudo.simulated_annealing import simulated_annealing_mochila
+from metaheuristics.estudo.tabu_search import tabu_search_mochila
 from metaheuristics.utils import ordem
 from metaheuristics.utils.debug import Depurador
 from metaheuristics.utils.instancia import Item

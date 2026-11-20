@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from metaheuristics.iterated_local_search import iterated_local_search_mochila
+from metaheuristics.estudo.iterated_local_search import iterated_local_search_mochila
 from metaheuristics.utils.experimento import resumir
 from metaheuristics.utils.experimento import rodar_sementes
 from metaheuristics.utils.experimento import tabela

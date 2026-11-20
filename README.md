@@ -7,19 +7,19 @@ Repositório de estudo sobre **heurísticas e metaheurísticas** para problemas 
 | Pasta | Algoritmo | Problema |
 |---|---|---|
 | [`metaheuristics/`](metaheuristics/README.md) | Conceitos: representação e heurística × metaheurística | — |
-| [`metaheuristics/guloso/`](metaheuristics/guloso/README.md) | Algoritmo guloso | — |
-| [`metaheuristics/guloso/kruskal/`](metaheuristics/guloso/kruskal/README.md) | Kruskal | Árvore Geradora Mínima |
-| [`metaheuristics/guloso/mochila/`](metaheuristics/guloso/mochila/README.md) | Heurísticas gulosas | Mochila 0-1 |
-| [`metaheuristics/guloso/caixeiro_viajante/`](metaheuristics/guloso/caixeiro_viajante/README.md) | Heurística gulosa | Caixeiro Viajante |
-| [`metaheuristics/simulated_annealing/`](metaheuristics/simulated_annealing/README.md) | Simulated Annealing | Mochila 0-1 |
-| [`metaheuristics/iterated_local_search/`](metaheuristics/iterated_local_search/README.md) | Iterated Local Search | Mochila 0-1 |
-| [`metaheuristics/variable_neighborhood_search/`](metaheuristics/variable_neighborhood_search/README.md) | Variable Neighborhood Search | Mochila 0-1 |
-| [`metaheuristics/adaptive_large_neighborhood_search/`](metaheuristics/adaptive_large_neighborhood_search/README.md) | Adaptive Large Neighbourhood Search | Mochila 0-1 |
-| [`metaheuristics/tabu_search/`](metaheuristics/tabu_search/README.md) | Busca Tabu | Mochila 0-1 |
-| [`metaheuristics/grasp/`](metaheuristics/grasp/README.md) | GRASP + Path-Relinking | Mochila 0-1 |
-| [`metaheuristics/particle_swarm_optimization/`](metaheuristics/particle_swarm_optimization/README.md) | Enxame de Partículas (PSO) | Mochila 0-1 |
-| [`metaheuristics/genetic_algorithm/`](metaheuristics/genetic_algorithm/README.md) | Algoritmo Genético (AG) | Mochila 0-1 |
-| [`metaheuristics/ant_colony_optimization/`](metaheuristics/ant_colony_optimization/README.md) | Colônia de Formigas (ACO) | Mochila 0-1 |
+| [`metaheuristics/estudo/guloso/`](metaheuristics/estudo/guloso/README.md) | Algoritmo guloso | — |
+| [`metaheuristics/estudo/guloso/kruskal/`](metaheuristics/estudo/guloso/kruskal/README.md) | Kruskal | Árvore Geradora Mínima |
+| [`metaheuristics/estudo/guloso/mochila/`](metaheuristics/estudo/guloso/mochila/README.md) | Heurísticas gulosas | Mochila 0-1 |
+| [`metaheuristics/estudo/guloso/caixeiro_viajante/`](metaheuristics/estudo/guloso/caixeiro_viajante/README.md) | Heurística gulosa | Caixeiro Viajante |
+| [`metaheuristics/estudo/simulated_annealing/`](metaheuristics/estudo/simulated_annealing/README.md) | Simulated Annealing | Mochila 0-1 |
+| [`metaheuristics/estudo/iterated_local_search/`](metaheuristics/estudo/iterated_local_search/README.md) | Iterated Local Search | Mochila 0-1 |
+| [`metaheuristics/estudo/variable_neighborhood_search/`](metaheuristics/estudo/variable_neighborhood_search/README.md) | Variable Neighborhood Search | Mochila 0-1 |
+| [`metaheuristics/estudo/adaptive_large_neighborhood_search/`](metaheuristics/estudo/adaptive_large_neighborhood_search/README.md) | Adaptive Large Neighbourhood Search | Mochila 0-1 |
+| [`metaheuristics/estudo/tabu_search/`](metaheuristics/estudo/tabu_search/README.md) | Busca Tabu | Mochila 0-1 |
+| [`metaheuristics/estudo/grasp/`](metaheuristics/estudo/grasp/README.md) | GRASP + Path-Relinking | Mochila 0-1 |
+| [`metaheuristics/estudo/particle_swarm_optimization/`](metaheuristics/estudo/particle_swarm_optimization/README.md) | Enxame de Partículas (PSO) | Mochila 0-1 |
+| [`metaheuristics/estudo/genetic_algorithm/`](metaheuristics/estudo/genetic_algorithm/README.md) | Algoritmo Genético (AG) | Mochila 0-1 |
+| [`metaheuristics/estudo/ant_colony_optimization/`](metaheuristics/estudo/ant_colony_optimization/README.md) | Colônia de Formigas (ACO) | Mochila 0-1 |
 | [`metaheuristics/utils/`](metaheuristics/utils/README.md) | Peças trocáveis do SA, ILS, VNS, ALNS, Busca Tabu, GRASP, PSO, AG e ACO, gráficos e depurador visual | Mochila 0-1 |
 | [`metaheuristics/laboratorio.ipynb`](metaheuristics/laboratorio.ipynb) | Notebook para montar e comparar combinações | Mochila 0-1 |
 
@@ -54,10 +54,12 @@ metaheuristics/
 ├── utils/             peças trocáveis, histórico, gráficos e depurador
 │   ├── binaria/       peças da representação binária
 │   └── ordem/         peças da representação por ordem
-└── <algoritmo>/
-    ├── __init__.py    implementação
-    ├── plot.py        gráficos (no guloso)
-    └── README.md      teoria e exemplos
+└── estudo/            algoritmos das aulas
+    └── <algoritmo>/
+        ├── __init__.py    implementação
+        ├── plot.py        gráficos (no guloso)
+        └── README.md      teoria e exemplos
 tests/
-└── <algoritmo>/       um teste por função, espelhando a estrutura acima
+└── estudo/
+    └── <algoritmo>/   um teste por função, espelhando a estrutura acima
 ```

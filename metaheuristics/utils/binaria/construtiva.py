@@ -2,7 +2,7 @@ import math
 import random
 from collections.abc import Callable
 
-from metaheuristics.guloso.mochila import mochila_gulosa
+from metaheuristics.estudo.guloso.mochila import mochila_gulosa
 from metaheuristics.utils.instancia import Item
 
 Vies = str | Callable[[int], float]

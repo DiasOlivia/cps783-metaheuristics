@@ -4,10 +4,10 @@ from itertools import pairwise
 import numpy as np
 from matplotlib.figure import Figure
 
-from metaheuristics.adaptive_large_neighborhood_search import (
+from metaheuristics.estudo.adaptive_large_neighborhood_search import (
     adaptive_large_neighborhood_search_mochila,
 )
-from metaheuristics.simulated_annealing import simulated_annealing_mochila
+from metaheuristics.estudo.simulated_annealing import simulated_annealing_mochila
 from metaheuristics.utils.instancia import gerar_instancia_aleatoria
 from metaheuristics.utils.plot import milhar
 from metaheuristics.utils.plot import plotar_comparacao
