@@ -16,9 +16,12 @@ from matplotlib.ticker import MaxNLocator
 
 from metaheuristics.utils.plot import COR_ATUAL
 from metaheuristics.utils.plot import COR_CANDIDATO
+from metaheuristics.utils.plot import COR_EIXO
 from metaheuristics.utils.plot import COR_FORA
 from metaheuristics.utils.plot import COR_MELHOR
+from metaheuristics.utils.plot import COR_MELHORA
 from metaheuristics.utils.plot import COR_NOVO_MELHOR
+from metaheuristics.utils.plot import COR_PIORA
 from metaheuristics.utils.plot import COR_SUPERFICIE
 from metaheuristics.utils.plot import COR_TEXTO
 from metaheuristics.utils.plot import COR_TEXTO_SECUNDARIO
@@ -37,18 +40,32 @@ Solucao = tuple[Matriz, Vetor, int]
 
 
 class Instancia(Protocol):
-    """O que o depurador usa da instância: a capacidade de cada facilidade.
+    """O que o depurador usa da instância.
 
     A ``Instance`` do notebook atende a essa interface.
     """
 
     capacidades: Vetor
+    custos_fixos: Vetor
+    demandas: Vetor
+    custos_transporte: Matriz
 
 
 COR_ETAPA = "#0b0b0b"
+COR_FACILIDADE = COR_PIORA
+COR_ENVIO = COR_MELHORA
 PALETA_CLIENTES = [plt.get_cmap("tab20")(indice) for indice in range(20)]
 # Segmentos mais estreitos que essa fração da maior capacidade ficam sem rótulo
 LARGURA_MINIMA_ROTULO = 0.08
+# Espessura da aresta do maior envio no grafo; as outras são proporcionais
+LARGURA_MAXIMA_ENVIO = 6.0
+# Posições tentadas para o rótulo de cada envio ao longo da aresta, de 0 (facilidade)
+# a 1 (cliente). Começa perto do cliente, que recebe poucas arestas, e recua se o
+# lugar já tiver outro rótulo.
+POSICOES_ROTULO_ENVIO = (0.84, 0.7, 0.56, 0.42)
+# Distâncias mínimas entre os centros de dois rótulos, em unidades do eixo do grafo
+DISTANCIA_ROTULO_X = 0.2
+DISTANCIA_ROTULO_Y = 0.035
 
 
 def _cor(cliente: int) -> tuple[float, float, float, float]:
@@ -67,15 +84,35 @@ def _maiuscula(texto: str) -> str:
     return texto[:1].upper() + texto[1:]
 
 
+def _lugar_do_rotulo(
+    altura_facilidade: float,
+    altura_cliente: float,
+    colocados: list[tuple[float, float]],
+) -> tuple[float, float]:
+    """Primeiro ponto da aresta, a partir do cliente, longe dos rótulos já colocados."""
+    for x in POSICOES_ROTULO_ENVIO:
+        y = altura_facilidade + x * (altura_cliente - altura_facilidade)
+        if all(
+            abs(x - outro_x) >= DISTANCIA_ROTULO_X
+            or abs(y - outro_y) >= DISTANCIA_ROTULO_Y
+            for outro_x, outro_y in colocados
+        ):
+            return x, y
+    x = POSICOES_ROTULO_ENVIO[0]
+    return x, altura_facilidade + x * (altura_cliente - altura_facilidade)
+
+
 class Debug:
     """Desenha uma figura por iteração de um método do CFLP.
 
     Passe uma instância como ``debug`` para um dos métodos do notebook. O método
     chama ``iniciar`` com o próprio nome, a unidade de iteração (reinício, tentativa
-    ou geração) e o que são as duas alocações que ele mostra. À esquerda, a figura
-    mostra essas duas alocações: uma barra por facilidade aberta, dividida nos
-    clientes que ela atende, com a capacidade livre no fim. Cada cliente tem sempre a
-    mesma cor. À direita fica o mini-histórico do custo total. Desenha a primeira
+    ou geração) e o que são as duas soluções de cada iteração. À esquerda, a figura
+    mostra a segunda solução (a melhorada) de dois jeitos. Em cima, uma barra por
+    facilidade aberta, dividida nos clientes que ela atende, com a capacidade livre no
+    fim. Embaixo, o grafo entre facilidades e clientes: cada envio é uma aresta verde,
+    mais grossa quanto maior a quantidade. Cada cliente tem sempre a mesma cor. À
+    direita fica o mini-histórico do custo total, com as duas soluções. Desenha a primeira
     iteração, as múltiplas de ``a_cada`` e a última bem-sucedida, até ``limite``
     figuras. O depurador nunca sorteia números, então os resultados são os mesmos com
     e sem ele.
@@ -119,6 +156,9 @@ class Debug:
             else PASTA_PLOTS / "debug" / f"{datetime.now():%Y%m%d_%H%M%S}"
         )
         self.capacidades: Vetor = np.zeros(0, dtype=int)
+        self.custos_fixos: Vetor = np.zeros(0, dtype=int)
+        self.demandas: Vetor = np.zeros(0, dtype=int)
+        self.custos_transporte: Matriz = np.zeros((0, 0), dtype=int)
         self.metodo = ""
         self.unidade = ""
         self.rotulos = ("", "")
@@ -147,10 +187,13 @@ class Debug:
 
         ``unidade`` é o nome de cada iteração ("reinício", "tentativa", "geração"),
         ``rotulos`` diz o que são as duas alocações desenhadas, e ``total`` é o número
-        de iterações, ou ``None`` quando não se sabe de antemão. A ``instance`` dá a
-        capacidade de cada facilidade, que define o tamanho das barras.
+        de iterações, ou ``None`` quando não se sabe de antemão. A ``instance`` dá as
+        capacidades, os custos e as demandas desenhados nos painéis.
         """
         self.capacidades = instance.capacidades
+        self.custos_fixos = instance.custos_fixos
+        self.demandas = instance.demandas
+        self.custos_transporte = instance.custos_transporte
         self.metodo = metodo
         self.unidade = unidade
         self.rotulos = rotulos
@@ -210,10 +253,12 @@ class Debug:
             f"{milhar(segunda[2])} · melhor {milhar(melhor[2])}"
         )
         with plt.style.context(ESTILO):
-            fig = plt.figure(figsize=(15, 7.5), layout="constrained")
-            grade = fig.add_gridspec(2, 2, width_ratios=(1.15, 1))
-            ax_primeira = fig.add_subplot(grade[0, 0])
-            ax_segunda = fig.add_subplot(grade[1, 0], sharex=ax_primeira)
+            fig = plt.figure(figsize=(15, 9.5), layout="constrained")
+            grade = fig.add_gridspec(
+                2, 2, width_ratios=(1.15, 1), height_ratios=(1, 2.4)
+            )
+            ax_barras = fig.add_subplot(grade[0, 0])
+            ax_grafo = fig.add_subplot(grade[1, 0])
             ax_historico = fig.add_subplot(grade[:, 1])
             fig.suptitle(
                 f"{self.metodo} · {self.unidade} {self.iteracao}{de_total}\n{texto}",
@@ -222,11 +267,9 @@ class Debug:
                 fontsize=11.5,
                 fontweight="bold",
             )
-            self._alocacao(
-                ax_primeira, primeira, f"1. {_maiuscula(rotulo_primeira)}"
-            )
-            self._alocacao(ax_segunda, segunda, f"2. {_maiuscula(rotulo_segunda)}")
-            ax_segunda.set_xlabel("unidades enviadas a cada cliente →")
+            self._alocacao(ax_barras, segunda, f"1. {_maiuscula(rotulo_segunda)}")
+            ax_barras.set_xlabel("unidades enviadas a cada cliente →")
+            self._grafo(ax_grafo, segunda, f"2. Grafo: {rotulo_segunda}")
             self._historico(ax_historico)
             self._legenda(fig)
             finalizar(
@@ -289,6 +332,116 @@ class Debug:
         ax.grid(axis="y", visible=False)
         ax.set_title(f"{titulo} ({milhar(custo)})", loc="left", fontsize=11)
 
+    def _grafo(self, ax: Axes, solucao: Solucao, titulo: str) -> None:
+        """Facilidades à esquerda, clientes à direita e uma aresta por envio."""
+        alocacao, abertas, custo = solucao
+        n_clientes, n_facilidades = alocacao.shape
+        altura_cliente = np.linspace(1, 0, n_clientes)
+        altura_facilidade = (
+            np.linspace(0.92, 0.08, n_facilidades)
+            if n_facilidades > 1
+            else np.array([0.5])
+        )
+        maior_envio = int(alocacao.max())
+        rotulos_colocados: list[tuple[float, float]] = []
+
+        for facilidade in np.flatnonzero(abertas):
+            for cliente in range(n_clientes):
+                pontas = (
+                    [0, 1],
+                    [altura_facilidade[facilidade], altura_cliente[cliente]],
+                )
+                quantidade = int(alocacao[cliente, facilidade])
+                if quantidade == 0:
+                    ax.plot(
+                        *pontas,
+                        color=COR_EIXO,
+                        linestyle="--",
+                        linewidth=0.5,
+                        alpha=0.6,
+                    )
+                    continue
+                ax.plot(
+                    *pontas,
+                    color=COR_ENVIO,
+                    linewidth=1 + LARGURA_MAXIMA_ENVIO * quantidade / maior_envio,
+                    solid_capstyle="butt",
+                    zorder=3,
+                )
+                custo_envio = int(self.custos_transporte[cliente, facilidade])
+                x_rotulo, y_rotulo = _lugar_do_rotulo(
+                    altura_facilidade[facilidade],
+                    altura_cliente[cliente],
+                    rotulos_colocados,
+                )
+                rotulos_colocados.append((x_rotulo, y_rotulo))
+                ax.text(
+                    x_rotulo,
+                    y_rotulo,
+                    f"{quantidade}u · ${milhar(custo_envio * quantidade)}",
+                    ha="center",
+                    va="center",
+                    fontsize=6.5,
+                    color=COR_TEXTO,
+                    zorder=4,
+                    bbox={
+                        "boxstyle": "round,pad=0.15",
+                        "facecolor": COR_SUPERFICIE,
+                        "edgecolor": "none",
+                        "alpha": 0.85,
+                    },
+                )
+
+        for facilidade in range(n_facilidades):
+            altura = altura_facilidade[facilidade]
+            capacidade = int(self.capacidades[facilidade])
+            if abertas[facilidade]:
+                usado = int(alocacao[:, facilidade].sum())
+                ax.scatter(
+                    0, altura, marker="s", s=260, color=COR_FACILIDADE, zorder=5
+                )
+                texto = (
+                    f"F{facilidade + 1}\n{usado}/{capacidade}\n"
+                    f"fixo ${milhar(int(self.custos_fixos[facilidade]))}"
+                )
+            else:
+                ax.scatter(
+                    0,
+                    altura,
+                    marker="s",
+                    s=260,
+                    facecolor=COR_SUPERFICIE,
+                    edgecolor=COR_TEXTO_SECUNDARIO,
+                    linewidth=1.5,
+                    zorder=5,
+                )
+                texto = f"F{facilidade + 1}\nfechada"
+            ax.text(-0.07, altura, texto, ha="right", va="center", fontsize=8.5)
+
+        for cliente in range(n_clientes):
+            ax.scatter(
+                1,
+                altura_cliente[cliente],
+                s=170,
+                color=_cor(cliente),
+                edgecolor=COR_TEXTO,
+                linewidth=0.6,
+                zorder=5,
+            )
+            ax.text(
+                1.06,
+                altura_cliente[cliente],
+                f"C{cliente + 1} · {int(self.demandas[cliente])} un.",
+                ha="left",
+                va="center",
+                fontsize=8.5,
+            )
+
+        ax.set_xlim(-0.42, 1.38)
+        ax.set_ylim(-0.06, 1.06)
+        ax.axis("off")
+        ax.set_title(f"{titulo} ({milhar(custo)})", loc="left", fontsize=11)
+
     def _historico(self, ax: Axes) -> None:
         ax.plot(
             self.iteracoes,
@@ -340,8 +493,42 @@ class Debug:
 
         rotulo_primeira, rotulo_segunda = self.rotulos
         itens = [
-            Patch(color=_cor(0), label="cliente (a mesma cor em toda barra)"),
+            Patch(color=_cor(0), label="cliente (a mesma cor nos dois painéis)"),
             Patch(color=COR_FORA, label="capacidade livre"),
+            Line2D(
+                [],
+                [],
+                marker="s",
+                linestyle="none",
+                color=COR_FACILIDADE,
+                markersize=8,
+                label="facilidade aberta",
+            ),
+            Line2D(
+                [],
+                [],
+                marker="s",
+                linestyle="none",
+                markerfacecolor=COR_SUPERFICIE,
+                markeredgecolor=COR_TEXTO_SECUNDARIO,
+                markersize=8,
+                label="facilidade fechada",
+            ),
+            Line2D(
+                [],
+                [],
+                color=COR_ENVIO,
+                linewidth=3,
+                label="envio (espessura = quantidade)",
+            ),
+            Line2D(
+                [],
+                [],
+                color=COR_EIXO,
+                linestyle="--",
+                linewidth=0.7,
+                label="ligação sem envio",
+            ),
             Line2D(
                 [], [], color=COR_CANDIDATO, linewidth=0.8, label=rotulo_primeira
             ),
@@ -352,4 +539,4 @@ class Debug:
             ponto(COR_NOVO_MELHOR, "nova melhor solução"),
             ponto(COR_ETAPA, f"{self.unidade} desta figura", tamanho=8),
         ]
-        fig.legend(handles=itens, loc="outside lower center", ncol=4, fontsize=8.5)
+        fig.legend(handles=itens, loc="outside lower center", ncol=6, fontsize=8.5)
