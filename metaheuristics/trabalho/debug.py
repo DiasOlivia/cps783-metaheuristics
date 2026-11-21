@@ -1,17 +1,19 @@
+import re
+import unicodedata
 from datetime import datetime
-from functools import partial
 from pathlib import Path
+from typing import Protocol
 
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.ticker import FuncFormatter
 from matplotlib.ticker import MaxNLocator
 
-from metaheuristics.trabalho.protocol import ClienteId
-from metaheuristics.trabalho.protocol import FacilidadeId
-from metaheuristics.trabalho.protocol import Problem
-from metaheuristics.trabalho.protocol import Solucao
 from metaheuristics.utils.plot import COR_ATUAL
 from metaheuristics.utils.plot import COR_CANDIDATO
 from metaheuristics.utils.plot import COR_FORA
@@ -25,39 +27,58 @@ from metaheuristics.utils.plot import PASTA_PLOTS
 from metaheuristics.utils.plot import finalizar
 from metaheuristics.utils.plot import milhar
 from metaheuristics.utils.plot import novas_melhores
-from metaheuristics.utils.plot import plotar_historico
+
+# alocacao[cliente, facilidade]: uma linha por cliente, uma coluna por facilidade
+Matriz = npt.NDArray[np.int_]
+# abertas[facilidade], capacidades
+Vetor = npt.NDArray[np.int_]
+# (alocacao, abertas, custo) de uma solução
+Solucao = tuple[Matriz, Vetor, int]
+
+
+class Instancia(Protocol):
+    """O que o depurador usa da instância: a capacidade de cada facilidade.
+
+    A ``Instance`` do notebook atende a essa interface.
+    """
+
+    capacidades: Vetor
+
 
 COR_ETAPA = "#0b0b0b"
-PALETA_CLIENTES = [plt.get_cmap("tab20")(k) for k in range(20)]
+PALETA_CLIENTES = [plt.get_cmap("tab20")(indice) for indice in range(20)]
 # Segmentos mais estreitos que essa fração da maior capacidade ficam sem rótulo
 LARGURA_MINIMA_ROTULO = 0.08
 
-plot_grasp = partial(
-    plotar_historico,
-    titulo="Histórico do GRASP",
-    rotulo_y="custo total",
-    rotulo_x="soluções avaliadas",
-    rotulo_candidato="construída",
-    rotulo_atual="ótimo local",
-    rotulo_melhor="melhor até agora",
-)
+
+def _cor(cliente: int) -> tuple[float, float, float, float]:
+    return PALETA_CLIENTES[cliente % len(PALETA_CLIENTES)]
 
 
-def _cor(cliente_id: ClienteId):
-    return PALETA_CLIENTES[(int(cliente_id) - 1) % len(PALETA_CLIENTES)]
+def _prefixo(metodo: str) -> str:
+    """Nome de arquivo a partir do método: "GRASP + SA" vira "grasp_sa"."""
+    sem_acento = (
+        unicodedata.normalize("NFKD", metodo).encode("ascii", "ignore").decode()
+    )
+    return re.sub(r"[^a-z0-9]+", "_", sem_acento.lower()).strip("_")
+
+
+def _maiuscula(texto: str) -> str:
+    return texto[:1].upper() + texto[1:]
 
 
 class Debug:
-    """Desenha uma figura por iteração do GRASP do CFLP.
+    """Desenha uma figura por iteração de um método do CFLP.
 
-    Passe uma instância como ``debug`` para o ``grasp``. À esquerda, a figura mostra
-    a alocação da solução construída e a do ótimo local da iteração: uma barra por
-    facilidade aberta, de cima para baixo na ordem de abertura, dividida nos
-    clientes atendidos na ordem de atendimento, com a capacidade livre no fim. Cada
-    cliente tem sempre a mesma cor. À direita fica o mini-histórico do custo total.
-    Desenha as iterações múltiplas de ``a_cada``, além da primeira e da última
-    bem-sucedida, até ``limite`` figuras. O depurador nunca sorteia números, então os
-    resultados são os mesmos com e sem ele.
+    Passe uma instância como ``debug`` para um dos métodos do notebook. O método
+    chama ``iniciar`` com o próprio nome, a unidade de iteração (reinício, tentativa
+    ou geração) e o que são as duas alocações que ele mostra. À esquerda, a figura
+    mostra essas duas alocações: uma barra por facilidade aberta, dividida nos
+    clientes que ela atende, com a capacidade livre no fim. Cada cliente tem sempre a
+    mesma cor. À direita fica o mini-histórico do custo total. Desenha a primeira
+    iteração, as múltiplas de ``a_cada`` e a última bem-sucedida, até ``limite``
+    figuras. O depurador nunca sorteia números, então os resultados são os mesmos com
+    e sem ele.
 
     Parameters
     ----------
@@ -65,7 +86,7 @@ class Debug:
         Se mostra cada figura (no notebook).
     save : bool, default False
         Se salva cada figura como PNG.
-    a_cada : int or None, default 1
+    a_cada : int or None, default None
         Desenha a cada ``a_cada`` iterações. Com ``None``, desenha só a última
         iteração bem-sucedida.
     limite : int, default 100
@@ -88,7 +109,6 @@ class Debug:
             raise ValueError(
                 "Ligue show e/ou save: sem eles o depurador não gera nada."
             )
-        self.capacidade: dict[FacilidadeId, int] = {}
         self.show = show
         self.save = save
         self.a_cada = a_cada
@@ -98,42 +118,65 @@ class Debug:
             if pasta is not None
             else PASTA_PLOTS / "debug" / f"{datetime.now():%Y%m%d_%H%M%S}"
         )
+        self.capacidades: Vetor = np.zeros(0, dtype=int)
+        self.metodo = ""
+        self.unidade = ""
+        self.rotulos = ("", "")
+        self.total: int | None = None
         self.figuras = 0
         self._avisou = False
         self.ativo = False
         self.iteracao = 0
-        self.total = 0
+        self._primeira_iteracao: int | None = None
         self.iteracoes: list[int] = []
-        self.custos_construidas: list[int] = []
-        self.custos_atuais: list[int] = []
+        self.custos_primeira: list[int] = []
+        self.custos_segunda: list[int] = []
         self.custos_melhores: list[int] = []
         self._ultima: tuple[Solucao, Solucao, Solucao] | None = None
-        self._ultima_desenhada = 0
+        self._ultima_desenhada: int | None = None
 
-    def inicio_iteracao(self, problem: Problem, iteracao: int, total: int) -> None:
-        """Marca o início de uma iteração e decide se ela será desenhada.
+    def iniciar(
+        self,
+        instance: Instancia,
+        metodo: str,
+        unidade: str,
+        rotulos: tuple[str, str],
+        total: int | None,
+    ) -> None:
+        """Configura o desenho para um método.
 
-        O ``problem`` dá a capacidade de cada facilidade, que define o tamanho das
-        barras.
+        ``unidade`` é o nome de cada iteração ("reinício", "tentativa", "geração"),
+        ``rotulos`` diz o que são as duas alocações desenhadas, e ``total`` é o número
+        de iterações, ou ``None`` quando não se sabe de antemão. A ``instance`` dá a
+        capacidade de cada facilidade, que define o tamanho das barras.
         """
-        self.capacidade = {f.id: f.capacidade for f in problem.facilidades}
-        self.iteracao = iteracao
+        self.capacidades = instance.capacidades
+        self.metodo = metodo
+        self.unidade = unidade
+        self.rotulos = rotulos
         self.total = total
+
+    def inicio_iteracao(self, iteracao: int) -> None:
+        """Marca o início de uma iteração e decide se ela será desenhada."""
+        if self._primeira_iteracao is None:
+            self._primeira_iteracao = iteracao
+        self.iteracao = iteracao
         self.ativo = self.a_cada is not None and (
-            iteracao in (1, total) or iteracao % self.a_cada == 0
+            iteracao in (self._primeira_iteracao, self.total)
+            or iteracao % self.a_cada == 0
         )
 
     def fim_iteracao(
-        self, construida: Solucao, melhorada: Solucao, melhor: Solucao
+        self, primeira: Solucao, segunda: Solucao, melhor: Solucao
     ) -> None:
         """Registra o resultado da iteração e desenha a figura, se ela estiver ativa."""
         self.iteracoes.append(self.iteracao)
-        self.custos_construidas.append(construida.custo_total)
-        self.custos_atuais.append(melhorada.custo_total)
-        self.custos_melhores.append(melhor.custo_total)
-        self._ultima = (construida, melhorada, melhor)
+        self.custos_primeira.append(primeira[2])
+        self.custos_segunda.append(segunda[2])
+        self.custos_melhores.append(melhor[2])
+        self._ultima = (primeira, segunda, melhor)
         if self._pode_desenhar():
-            self._desenhar(construida, melhorada, melhor)
+            self._desenhar(primeira, segunda, melhor)
 
     def fim(self) -> None:
         """Desenha a última iteração bem-sucedida, se ela ainda não foi desenhada."""
@@ -158,73 +201,79 @@ class Debug:
         return True
 
     def _desenhar(
-        self, construida: Solucao, melhorada: Solucao, melhor: Solucao
+        self, primeira: Solucao, segunda: Solucao, melhor: Solucao
     ) -> None:
+        rotulo_primeira, rotulo_segunda = self.rotulos
+        de_total = f" de {self.total}" if self.total is not None else ""
         texto = (
-            f"construída {milhar(construida.custo_total)} → ótimo local "
-            f"{milhar(melhorada.custo_total)} · melhor {milhar(melhor.custo_total)}"
+            f"{rotulo_primeira} {milhar(primeira[2])} → {rotulo_segunda} "
+            f"{milhar(segunda[2])} · melhor {milhar(melhor[2])}"
         )
-        with plt.rc_context(ESTILO):  # type: ignore
+        with plt.style.context(ESTILO):
             fig = plt.figure(figsize=(15, 7.5), layout="constrained")
             grade = fig.add_gridspec(2, 2, width_ratios=(1.15, 1))
-            ax_construida = fig.add_subplot(grade[0, 0])
-            ax_otimo = fig.add_subplot(grade[1, 0], sharex=ax_construida)
+            ax_primeira = fig.add_subplot(grade[0, 0])
+            ax_segunda = fig.add_subplot(grade[1, 0], sharex=ax_primeira)
             ax_historico = fig.add_subplot(grade[:, 1])
             fig.suptitle(
-                f"GRASP · iteração {self.iteracao} de {self.total}\n{texto}",
+                f"{self.metodo} · {self.unidade} {self.iteracao}{de_total}\n{texto}",
                 x=0.01,
                 ha="left",
                 fontsize=11.5,
                 fontweight="bold",
             )
-            self._alocacao(ax_construida, construida, "1. Alocação da construída")
-            self._alocacao(ax_otimo, melhorada, "2. Alocação do ótimo local")
-            ax_otimo.set_xlabel("unidades enviadas, na ordem de atendimento →")
+            self._alocacao(
+                ax_primeira, primeira, f"1. {_maiuscula(rotulo_primeira)}"
+            )
+            self._alocacao(ax_segunda, segunda, f"2. {_maiuscula(rotulo_segunda)}")
+            ax_segunda.set_xlabel("unidades enviadas a cada cliente →")
             self._historico(ax_historico)
             self._legenda(fig)
             finalizar(
-                fig, f"grasp_{self.iteracao:05d}", self.show, self.save, self.pasta
+                fig,
+                f"{_prefixo(self.metodo)}_{self.iteracao:05d}",
+                self.show,
+                self.save,
+                self.pasta,
             )
             plt.close(fig)
         self.figuras += 1
         self._ultima_desenhada = self.iteracao
 
-    def _alocacao(self, ax, solucao: Solucao, titulo: str) -> None:
-        maior = max(self.capacidade.values())
-        for posicao, facilidade_id in enumerate(solucao.abertas):
-            envios = [
-                (cliente_id, quantidade)
-                for (cliente_id, f_id), quantidade in solucao.alocacao.items()
-                if f_id == facilidade_id
-            ]
+    def _alocacao(self, ax: Axes, solucao: Solucao, titulo: str) -> None:
+        alocacao, abertas, custo = solucao
+        maior_capacidade = int(self.capacidades.max())
+        facilidades_abertas = np.flatnonzero(abertas)
+        for posicao, facilidade in enumerate(facilidades_abertas):
             usado = 0
-            for cliente_id, quantidade in envios:
+            for cliente in np.flatnonzero(alocacao[:, facilidade]):
+                quantidade = int(alocacao[cliente, facilidade])
                 ax.barh(
                     posicao,
                     quantidade,
                     left=usado,
                     height=0.7,
-                    color=_cor(cliente_id),
+                    color=_cor(int(cliente)),
                     edgecolor=COR_SUPERFICIE,
                     linewidth=1,
                 )
-                if quantidade >= LARGURA_MINIMA_ROTULO * maior:
+                if quantidade >= LARGURA_MINIMA_ROTULO * maior_capacidade:
                     ax.text(
                         usado + quantidade / 2,
                         posicao,
-                        f"{cliente_id} {quantidade}",
+                        f"C{cliente + 1} {quantidade}",
                         ha="center",
                         va="center",
                         fontsize=7.5,
                         color=COR_TEXTO,
                     )
                 usado += quantidade
-            capacidade = self.capacidade[facilidade_id]
+            capacidade = int(self.capacidades[facilidade])
             ax.barh(
                 posicao, capacidade - usado, left=usado, height=0.7, color=COR_FORA
             )
             ax.text(
-                capacidade + 0.01 * maior,
+                capacidade + 0.01 * maior_capacidade,
                 posicao,
                 f"{usado}/{capacidade}",
                 va="center",
@@ -232,24 +281,22 @@ class Debug:
                 color=COR_TEXTO_SECUNDARIO,
             )
         ax.set_yticks(
-            range(len(solucao.abertas)),
-            [f"{k}º {f_id}" for k, f_id in enumerate(solucao.abertas, 1)],
+            range(len(facilidades_abertas)),
+            [f"F{facilidade + 1}" for facilidade in facilidades_abertas],
         )
         ax.invert_yaxis()
-        ax.set_xlim(0, maior * 1.12)
+        ax.set_xlim(0, maior_capacidade * 1.12)
         ax.grid(axis="y", visible=False)
-        ax.set_title(
-            f"{titulo} ({milhar(solucao.custo_total)})", loc="left", fontsize=11
-        )
+        ax.set_title(f"{titulo} ({milhar(custo)})", loc="left", fontsize=11)
 
-    def _historico(self, ax) -> None:
+    def _historico(self, ax: Axes) -> None:
         ax.plot(
             self.iteracoes,
-            self.custos_construidas,
+            self.custos_primeira,
             color=COR_CANDIDATO,
             linewidth=0.8,
         )
-        ax.plot(self.iteracoes, self.custos_atuais, color=COR_ATUAL, linewidth=1.2)
+        ax.plot(self.iteracoes, self.custos_segunda, color=COR_ATUAL, linewidth=1.2)
         ax.step(
             self.iteracoes,
             self.custos_melhores,
@@ -265,39 +312,44 @@ class Debug:
         )
         ax.scatter(
             [self.iteracoes[-1]],
-            [self.custos_atuais[-1]],
+            [self.custos_segunda[-1]],
             s=60,
             color=COR_ETAPA,
             zorder=6,
         )
-        ax.set_xlim(0, self.total + 1)
+        if self.total is not None:
+            ax.set_xlim(0, self.total + 1)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.xaxis.set_major_formatter(FuncFormatter(milhar))
         ax.yaxis.set_major_formatter(FuncFormatter(milhar))
-        ax.set_xlabel("iteração")
+        ax.set_xlabel(self.unidade)
         ax.set_ylabel("custo total")
         ax.set_title("3. Mini-histórico do custo total", loc="left", fontsize=11)
 
-    def _legenda(self, fig) -> None:
-        def ponto(cor, tamanho=7):
-            return {
-                "marker": "o",
-                "linestyle": "none",
-                "color": cor,
-                "markersize": tamanho,
-            }
+    def _legenda(self, fig: Figure) -> None:
+        def ponto(cor: str, rotulo: str, tamanho: float = 7) -> Line2D:
+            return Line2D(
+                [],
+                [],
+                marker="o",
+                linestyle="none",
+                color=cor,
+                markersize=tamanho,
+                label=rotulo,
+            )
 
+        rotulo_primeira, rotulo_segunda = self.rotulos
         itens = [
-            Patch(
-                color=_cor(ClienteId(1)), label="cliente (a mesma cor em toda barra)"
-            ),
+            Patch(color=_cor(0), label="cliente (a mesma cor em toda barra)"),
             Patch(color=COR_FORA, label="capacidade livre"),
-            Line2D([], [], color=COR_CANDIDATO, linewidth=0.8, label="construída"),
-            Line2D([], [], color=COR_ATUAL, linewidth=1.2, label="ótimo local"),
+            Line2D(
+                [], [], color=COR_CANDIDATO, linewidth=0.8, label=rotulo_primeira
+            ),
+            Line2D([], [], color=COR_ATUAL, linewidth=1.2, label=rotulo_segunda),
             Line2D(
                 [], [], color=COR_MELHOR, linewidth=1.8, label="melhor até agora"
             ),
-            Line2D([], [], **ponto(COR_NOVO_MELHOR), label="nova melhor solução"),
-            Line2D([], [], **ponto(COR_ETAPA, 8), label="iteração desta figura"),
+            ponto(COR_NOVO_MELHOR, "nova melhor solução"),
+            ponto(COR_ETAPA, f"{self.unidade} desta figura", tamanho=8),
         ]
         fig.legend(handles=itens, loc="outside lower center", ncol=4, fontsize=8.5)
